@@ -68,6 +68,22 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		};
 
 		/// <summary>
+		/// Gets the expected objects, in the expected order, mapped to the applied query with a limit.
+		/// </summary>
+		private Tuple<Property[], IQuery<Property>>[] PropertyLimitedQueryTestCases => new[]
+		{
+			new Tuple<Property[], IQuery<Property>>(
+				[Setup.GlobalPropertyA!, Setup.SchedulingPropertyB!],
+				PropertyFilter.ToQuery().OrderBy(PropertyExposers.Name).Limit(2)),
+			new Tuple<Property[], IQuery<Property>>(
+				[Setup.SchedulingPropertyD!, Setup.GlobalPropertyC!, Setup.SchedulingPropertyB!],
+				PropertyFilter.ToQuery().OrderByDescending(PropertyExposers.Order).Limit(3)),
+			new Tuple<Property[], IQuery<Property>>(
+				[Setup.GlobalPropertyA!, Setup.SchedulingPropertyB!, Setup.GlobalPropertyC!, Setup.SchedulingPropertyD!],
+				PropertyFilter.ToQuery().OrderBy(PropertyExposers.Order).Limit(10)),
+		};
+
+		/// <summary>
 		/// Gets the expected objects, in the expected order, mapped to the applied query. Only the properties that are
 		/// used in a scheduling context are expected to be returned.
 		/// </summary>
@@ -151,6 +167,121 @@ namespace RT_MediaOps.Plan.Properties.Querying
 			var query = PropertyFilter.ToQuery().OrderBy(PropertyExposers.Name).Limit(2);
 
 			QueryAssert.Read(TestContext.Api.Properties, [Setup.GlobalPropertyA!, Setup.SchedulingPropertyB!], query);
+		}
+
+		[TestMethod]
+		public void ReadPartialPropertiesWithQuery_ReturnsSamePropertiesInSameOrder()
+		{
+			foreach (var (expectedObjects, query) in PropertyQueryTestCases.Concat(PropertyLimitedQueryTestCases))
+			{
+				var partialProperties = TestContext.Api.Properties.ReadPartial(query.WithFields(PropertyExposers.Name)).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialProperties.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialProperties.Select(x => x.GetValue(PropertyExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedPropertiesWithQuery_DefaultPageSize_ReturnsSamePropertiesInOnePage()
+		{
+			foreach (var (expectedObjects, query) in PropertyQueryTestCases.Concat(PropertyLimitedQueryTestCases))
+			{
+				var pages = TestContext.Api.Properties.ReadPartialPaged(query.WithFields(PropertyExposers.Order)).ToList();
+
+				Assert.AreEqual(1, pages.Count, $"Query: {query}");
+				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Order).ToList(), pages[0].Select(x => x.GetValue(PropertyExposers.Order)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedPropertiesWithQuery_CustomPageSize_SplitsPropertiesOverPages()
+		{
+			var repository = (PropertiesRepository)TestContext.Api.Properties;
+
+			foreach (var (expectedObjects, query) in PropertyQueryTestCases.Concat(PropertyLimitedQueryTestCases))
+			{
+				var pages = repository.ReadPartialPaged(query.WithFields(PropertyExposers.Name), 2).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
+				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
+			}
+
+			Assert.IsTrue(PropertyQueryTestCases.Any(x => x.Item1.Length > 2), "No query returns more than one page.");
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedPropertiesWithFilter_ReturnsAllProperties()
+		{
+			var pages = TestContext.Api.Properties.ReadPartialPaged(PropertyFilter.WithFields(PropertyExposers.Scope, PropertyExposers.SectionName)).ToList();
+			var propertiesById = TestContext.Api.Properties.Read(PropertyFilter).ToDictionary(x => x.Id);
+
+			Assert.AreEqual(1, pages.Count);
+			CollectionAssert.AreEquivalent(propertiesById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+
+			foreach (var partialProperty in pages[0])
+			{
+				var property = propertiesById[partialProperty.Id];
+				Assert.AreEqual(property.Scope, partialProperty.GetValue(PropertyExposers.Scope));
+				Assert.AreEqual(property.SectionName, partialProperty.GetValue(PropertyExposers.SectionName));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPropertiesWithFilter_EveryPropertyType_ReturnsSameValuesAsFullRead()
+		{
+			var otherTypes = new Property[]
+			{
+				objectCreator!.CreateProperty(new BooleanProperty(new PropertyData { Scope = "global" }) { Name = $"Boolean_{Setup.Prefix}", SectionName = "Types", Order = 5, DefaultValue = true }),
+				objectCreator.CreateProperty(new DiscreteProperty(new PropertyData { Scope = "global" }) { Name = $"Discrete_{Setup.Prefix}", SectionName = "Types", Order = 6 }.SetDiscretes(["One", "Two"])),
+				objectCreator.CreateProperty(new FileProperty(new PropertyData { Scope = "global" }) { Name = $"File_{Setup.Prefix}", SectionName = "Types", Order = 7 }),
+			};
+
+			var ids = Setup.Properties.Concat(otherTypes).Select(x => x.Id).ToList();
+			var filter = new ORFilterElement<Property>(ids.Select(x => PropertyExposers.Id.Equal(x)).ToArray());
+			var partialFilter = filter.WithFields(
+				PropertyExposers.Id,
+				PropertyExposers.Name,
+				PropertyExposers.Scope,
+				PropertyExposers.SectionName,
+				PropertyExposers.Order);
+
+			var partialPropertiesById = TestContext.Api.Properties.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var properties = TestContext.Api.Properties.Read(filter).ToList();
+
+			Assert.AreEqual(ids.Count, properties.Count);
+			Assert.IsTrue(properties.Any(x => x.IsBooleanProperty(out _)) && properties.Any(x => x.IsDiscreteProperty(out _)) && properties.Any(x => x.IsFileProperty(out _)) && properties.Any(x => x.IsStringProperty(out _)));
+			Assert.AreEqual(properties.Count, partialPropertiesById.Count);
+
+			foreach (var property in properties)
+			{
+				var partialProperty = partialPropertiesById[property.Id];
+
+				Assert.AreEqual(property.Id, partialProperty.GetValue(PropertyExposers.Id));
+				Assert.AreEqual(property.Name, partialProperty.GetValue(PropertyExposers.Name));
+				Assert.AreEqual(property.Scope, partialProperty.GetValue(PropertyExposers.Scope));
+				Assert.AreEqual(property.SectionName, partialProperty.GetValue(PropertyExposers.SectionName));
+				Assert.AreEqual(property.Order, partialProperty.GetValue(PropertyExposers.Order));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialProperties_OnlyId_ReturnsIds()
+		{
+			var partialProperties = TestContext.Api.Properties.ReadPartial(PropertyFilter.WithFields(PropertyExposers.Id)).ToList();
+
+			CollectionAssert.AreEquivalent(Setup.Properties.Select(x => x.Id).ToList(), partialProperties.Select(x => x.GetValue(PropertyExposers.Id)).ToList());
+		}
+
+		[TestMethod]
+		public void ReadPartialProperties_UnknownField_ThrowsBeforeReading()
+		{
+			var unknownField = new Exposer<Property, string>(x => x.Name, "Unknown");
+
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Properties.ReadPartial(PropertyFilter.WithFields(unknownField)));
 		}
 
 		[TestMethod]
