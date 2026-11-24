@@ -6,6 +6,7 @@
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 
 	using SLDataGateway.API.Types.Querying;
@@ -13,9 +14,11 @@
 	internal class WorkflowsRepository : Repository, IWorkflowsRepository
 	{
 		private readonly WorkflowFilterTranslator filterTranslator = new WorkflowFilterTranslator();
+		private readonly DomPartialReader<Workflow> partialReader;
 
 		public WorkflowsRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
+			partialReader = new DomPartialReader<Workflow>(planApi, () => planApi.DomHelpers.SlcWorkflowHelper.DomHelper, filterTranslator, WorkflowPartialFieldMapper.Instance, nameof(WorkflowsRepository));
 		}
 
 		public Workflow Complete(Workflow workflow)
@@ -384,6 +387,31 @@
 			}
 
 			return ReadPagedIterator(query, pageSize);
+		}
+
+		public IEnumerable<SDM.PartialObject<Workflow>> ReadPartial(SDM.IPartialFilterElement<Workflow> partialFilter)
+		{
+			return partialReader.ReadPartial(partialFilter);
+		}
+
+		public IEnumerable<SDM.PartialObject<Workflow>> ReadPartial(SDM.IPartialQuery<Workflow> partialQuery)
+		{
+			return partialReader.ReadPartial(partialQuery);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialFilterElement<Workflow> partialFilter)
+		{
+			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialQuery<Workflow> partialQuery)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialQuery<Workflow> partialQuery, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}
 
 		public IReadOnlyCollection<Workflow> Update(IEnumerable<Workflow> oToUpdate)
