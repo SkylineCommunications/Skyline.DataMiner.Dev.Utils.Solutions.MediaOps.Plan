@@ -93,6 +93,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
+			lock (other.sync)
+			{
+				// Nothing to copy, so the identifiers are not scanned (for example the fresh lookups of rebuilt jobs).
+				if (other.parametersById.Count == 0 && other.missingIds.Count == 0)
+				{
+					return;
+				}
+			}
+
 			var requested = ids.Where(x => x != Guid.Empty).Distinct().ToList();
 			if (requested.Count == 0)
 			{
