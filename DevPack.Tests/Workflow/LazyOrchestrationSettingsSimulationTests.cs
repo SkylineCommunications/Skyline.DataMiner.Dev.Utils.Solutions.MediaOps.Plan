@@ -174,6 +174,39 @@ namespace RT_MediaOps.Plan.Workflow
 		}
 
 		[TestMethod]
+		public void ValidateJobs_ConfigurationReadFails_ReportsAValidationErrorInsteadOfThrowing()
+		{
+			var setup = new Setup();
+			var jobIds = new[] { setup.CreateJob(nodeCount: 1).Id, setup.CreateJob(nodeCount: 1).Id };
+			var jobs = setup.ReadApi.Jobs.Read(jobIds).ToList();
+
+			setup.Counter.FailNextConfigurationRead = true;
+			var results = setup.ReadApi.Jobs.Validate(jobs);
+
+			Assert.AreEqual(2, results.Count);
+			Assert.IsTrue(results.All(x => x.HasError(GenericJobValidationError.ErrorCode)), "A failed settings read was not reported as a validation error.");
+		}
+
+		[TestMethod]
+		public void SeedProfileParameterLookup_CopiesOnlyTheRequestedParameters()
+		{
+			var setup = new Setup();
+			var planApi = (MediaOpsPlanApi)setup.ReadApi;
+			var source = new ProfileParameterLookup(planApi);
+			source.Prefetch([setup.Capacity.Id, setup.TextConfiguration.Id]);
+
+			var target = new ProfileParameterLookup(planApi);
+			target.SeedFrom(source, [setup.Capacity.Id]);
+
+			setup.Counter.Reset();
+			Assert.AreEqual(1, target.GetParametersById([setup.Capacity.Id]).Count);
+			Assert.AreEqual(0, setup.Counter.ProfileParameterReads, "The requested parameter was not copied.");
+
+			Assert.AreEqual(1, target.GetParametersById([setup.TextConfiguration.Id]).Count);
+			Assert.AreEqual(1, setup.Counter.ProfileParameterReads, "A parameter that was not requested was copied as well.");
+		}
+
+		[TestMethod]
 		public void GetResourcesPerPool_DeferredPools_ReadsTheirSettingsOnce()
 		{
 			var setup = new Setup();

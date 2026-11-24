@@ -81,22 +81,49 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Copies the cached profile parameters of another lookup into this one.
+		/// Copies the specified profile parameters, as far as they are cached by another lookup, into this one. Parameters
+		/// this lookup already resolved are left untouched, so lookups shared by several owners are filled only once.
 		/// </summary>
 		/// <param name="other">The lookup to copy from.</param>
-		internal void SeedFrom(ProfileParameterLookup other)
+		/// <param name="ids">The identifiers of the profile parameters to copy.</param>
+		internal void SeedFrom(ProfileParameterLookup other, IEnumerable<Guid> ids)
 		{
-			if (other == null || ReferenceEquals(other, this))
+			if (other == null || ReferenceEquals(other, this) || ids == null)
 			{
 				return;
 			}
 
-			List<Net.Profiles.Parameter> parameters;
-			List<Guid> missing;
+			var requested = ids.Where(x => x != Guid.Empty).Distinct().ToList();
+			if (requested.Count == 0)
+			{
+				return;
+			}
+
+			lock (sync)
+			{
+				requested.RemoveAll(x => parametersById.ContainsKey(x) || missingIds.Contains(x));
+			}
+
+			if (requested.Count == 0)
+			{
+				return;
+			}
+
+			var parameters = new List<Net.Profiles.Parameter>();
+			var missing = new List<Guid>();
 			lock (other.sync)
 			{
-				parameters = other.parametersById.Values.ToList();
-				missing = other.missingIds.ToList();
+				foreach (var id in requested)
+				{
+					if (other.parametersById.TryGetValue(id, out var parameter))
+					{
+						parameters.Add(parameter);
+					}
+					else if (other.missingIds.Contains(id))
+					{
+						missing.Add(id);
+					}
+				}
 			}
 
 			lock (sync)

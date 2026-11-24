@@ -10,6 +10,7 @@
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 
 	using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
 	using Live = Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.Orchestration;
@@ -46,11 +47,8 @@
 				throw new ArgumentException("The jobs collection cannot contain null values.", nameof(jobs));
 			}
 
-			// The jobs are dictionary keys and their orchestration settings are validated, so the settings, which are
-			// read lazily, are read up front in a single batch.
-			Job.LoadOrchestrationSettings(jobList);
-
-			var results = jobList.ToDictionary(job => job, job => new JobValidationResult(job));
+			// Keyed by reference: job equality covers the lazily read orchestration settings, so hashing a job could read them.
+			var results = jobList.ToDictionary(job => job, job => new JobValidationResult(job), ObjectReferenceComparer<Job>.Instance);
 			if (jobList.Count == 0)
 			{
 				return Array.Empty<JobValidationResult>();
@@ -58,6 +56,10 @@
 
 			try
 			{
+				// The orchestration settings of the jobs are validated and read lazily, so they are read up front in a single
+				// batch. A failed read is reported as a validation error like any other failure below.
+				Job.LoadOrchestrationSettings(jobList);
+
 				var context = BuildContext(jobList);
 				foreach (var job in jobList)
 				{
