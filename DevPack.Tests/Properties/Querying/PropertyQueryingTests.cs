@@ -114,15 +114,28 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		private Tuple<PropertySettingCollection[], IQuery<PropertySettingCollection>>[] PropertySettingCollectionQueryTestCases => new[]
 		{
 			new Tuple<PropertySettingCollection[], IQuery<PropertySettingCollection>>(
-				[Setup.PropertySettingCollection1!, Setup.PropertySettingCollection2!, Setup.PropertySettingCollection3!],
+				[Setup.PropertySettingCollection1!, Setup.PropertySettingCollection2!, Setup.PropertySettingCollection3!, Setup.PropertySettingCollection4!],
 				PropertySettingCollectionFilter.ToQuery().OrderBy(PropertySettingCollectionExposers.LinkedObjectId)),
 			new Tuple<PropertySettingCollection[], IQuery<PropertySettingCollection>>(
-				[Setup.PropertySettingCollection3!, Setup.PropertySettingCollection2!, Setup.PropertySettingCollection1!],
+				[Setup.PropertySettingCollection4!, Setup.PropertySettingCollection3!, Setup.PropertySettingCollection2!, Setup.PropertySettingCollection1!],
 				PropertySettingCollectionFilter.ToQuery().OrderByDescending(PropertySettingCollectionExposers.LinkedObjectId)),
 
 			new Tuple<PropertySettingCollection[], IQuery<PropertySettingCollection>>(
 				[Setup.PropertySettingCollection1!, Setup.PropertySettingCollection2!],
 				PropertySettingCollectionFilter.AND(PropertySettingCollectionExposers.PropertySettings.PropertyId.Equal(Setup.GlobalPropertyA!.Id)).ToQuery().OrderBy(PropertySettingCollectionExposers.LinkedObjectId)),
+		};
+
+		/// <summary>
+		/// Gets the expected objects, in the expected order, mapped to the applied query with a limit.
+		/// </summary>
+		private Tuple<PropertySettingCollection[], IQuery<PropertySettingCollection>>[] PropertySettingCollectionLimitedQueryTestCases => new[]
+		{
+			new Tuple<PropertySettingCollection[], IQuery<PropertySettingCollection>>(
+				[Setup.PropertySettingCollection1!, Setup.PropertySettingCollection2!],
+				PropertySettingCollectionFilter.ToQuery().OrderBy(PropertySettingCollectionExposers.LinkedObjectId).Limit(2)),
+			new Tuple<PropertySettingCollection[], IQuery<PropertySettingCollection>>(
+				[Setup.PropertySettingCollection4!, Setup.PropertySettingCollection3!, Setup.PropertySettingCollection2!],
+				PropertySettingCollectionFilter.ToQuery().OrderByDescending(PropertySettingCollectionExposers.LinkedObjectId).Limit(3)),
 		};
 
 		[TestMethod]
@@ -358,9 +371,106 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		[TestMethod]
 		public void ReadPropertySettingCollectionsWithLimitedQuery()
 		{
-			var query = PropertySettingCollectionFilter.ToQuery().OrderBy(PropertySettingCollectionExposers.LinkedObjectId).Limit(2);
+			foreach (var (expectedObjects, query) in PropertySettingCollectionLimitedQueryTestCases)
+			{
+				QueryAssert.Read(TestContext.Api.PropertySettingCollections, expectedObjects, query);
+			}
+		}
 
-			QueryAssert.Read(TestContext.Api.PropertySettingCollections, [Setup.PropertySettingCollection1!, Setup.PropertySettingCollection2!], query);
+		[TestMethod]
+		public void ReadPartialPropertySettingCollectionsWithQuery_ReturnsSameCollectionsInSameOrder()
+		{
+			foreach (var (expectedObjects, query) in PropertySettingCollectionQueryTestCases.Concat(PropertySettingCollectionLimitedQueryTestCases))
+			{
+				var partialCollections = TestContext.Api.PropertySettingCollections.ReadPartial(query.WithFields(PropertySettingCollectionExposers.LinkedObjectId)).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialCollections.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.LinkedObjectId).ToList(), partialCollections.Select(x => x.GetValue(PropertySettingCollectionExposers.LinkedObjectId)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedPropertySettingCollectionsWithQuery_DefaultPageSize_ReturnsSameCollectionsInOnePage()
+		{
+			foreach (var (expectedObjects, query) in PropertySettingCollectionQueryTestCases.Concat(PropertySettingCollectionLimitedQueryTestCases))
+			{
+				var pages = TestContext.Api.PropertySettingCollections.ReadPartialPaged(query.WithFields(PropertySettingCollectionExposers.LinkedObjectId)).ToList();
+
+				Assert.AreEqual(1, pages.Count, $"Query: {query}");
+				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.LinkedObjectId).ToList(), pages[0].Select(x => x.GetValue(PropertySettingCollectionExposers.LinkedObjectId)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedPropertySettingCollectionsWithQuery_CustomPageSize_SplitsCollectionsOverPages()
+		{
+			var repository = (PropertySettingCollectionsRepository)TestContext.Api.PropertySettingCollections;
+
+			foreach (var (expectedObjects, query) in PropertySettingCollectionQueryTestCases.Concat(PropertySettingCollectionLimitedQueryTestCases))
+			{
+				var pages = repository.ReadPartialPaged(query.WithFields(PropertySettingCollectionExposers.LinkedObjectId), 2).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
+				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
+			}
+
+			Assert.IsTrue(PropertySettingCollectionQueryTestCases.Any(x => x.Item1.Length > 2), "No query returns more than one page.");
+		}
+
+		[TestMethod]
+		public void ReadPartialPropertySettingCollectionsWithFilter_ReturnsSameValuesAsFullRead()
+		{
+			var partialFilter = PropertySettingCollectionFilter.WithFields(
+				PropertySettingCollectionExposers.Id,
+				PropertySettingCollectionExposers.LinkedObjectId,
+				PropertySettingCollectionExposers.Scope,
+				PropertySettingCollectionExposers.SubId,
+				PropertySettingCollectionExposers.CustomPropertySettings.Name,
+				PropertySettingCollectionExposers.CustomPropertySettings.Value,
+				PropertySettingCollectionExposers.PropertySettings.PropertyId,
+				PropertySettingCollectionExposers.StringPropertySettings.Value,
+				PropertySettingCollectionExposers.BooleanPropertySettings.Value,
+				PropertySettingCollectionExposers.DiscretePropertySettings.Value);
+
+			var partialCollectionsById = TestContext.Api.PropertySettingCollections.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var collections = TestContext.Api.PropertySettingCollections.Read(PropertySettingCollectionFilter).ToList();
+
+			Assert.AreEqual(collections.Count, partialCollectionsById.Count);
+
+			foreach (var collection in collections)
+			{
+				var partialCollection = partialCollectionsById[collection.Id];
+				var message = collection.LinkedObjectId;
+
+				Assert.AreEqual(collection.Id, partialCollection.GetValue(PropertySettingCollectionExposers.Id), message);
+				Assert.AreEqual(collection.LinkedObjectId, partialCollection.GetValue(PropertySettingCollectionExposers.LinkedObjectId), message);
+				Assert.AreEqual(collection.Scope, partialCollection.GetValue(PropertySettingCollectionExposers.Scope), message);
+				Assert.AreEqual(collection.SubId, partialCollection.GetValue(PropertySettingCollectionExposers.SubId), message);
+				CollectionAssert.AreEqual(collection.CustomSettings.Select(x => x.Name).Where(x => x != null).ToList(), partialCollection.GetValues(PropertySettingCollectionExposers.CustomPropertySettings.Name).ToList(), message);
+				CollectionAssert.AreEqual(collection.CustomSettings.Select(x => x.Value).Where(x => x != null).ToList(), partialCollection.GetValues(PropertySettingCollectionExposers.CustomPropertySettings.Value).ToList(), message);
+				CollectionAssert.AreEqual(collection.PropertySettings.Select(x => x.Id).ToList(), partialCollection.GetValues(PropertySettingCollectionExposers.PropertySettings.PropertyId).ToList(), message);
+				CollectionAssert.AreEqual(collection.StringSettings.Select(x => x.Value).Where(x => x != null).ToList(), partialCollection.GetValues(PropertySettingCollectionExposers.StringPropertySettings.Value).ToList(), message);
+				CollectionAssert.AreEqual(collection.BooleanSettings.Select(x => x.Value).ToList(), partialCollection.GetValues(PropertySettingCollectionExposers.BooleanPropertySettings.Value).ToList(), message);
+				CollectionAssert.AreEqual(collection.DiscreteSettings.Select(x => x.Value).Where(x => x != null).ToList(), partialCollection.GetValues(PropertySettingCollectionExposers.DiscretePropertySettings.Value).ToList(), message);
+			}
+
+			// The setup must cover the multi-section fields, otherwise the comparison above proves little.
+			Assert.IsTrue(collections.Any(x => x.CustomSettings.Count > 1 && x.PropertySettings.Count > 1), "No collection with multiple custom and property settings.");
+			Assert.IsTrue(collections.Any(x => x.CustomSettings.Count > 1 && x.PropertySettings.Count == 0), "No collection with only custom settings.");
+			Assert.IsTrue(collections.Any(x => x.CustomSettings.Count == 0 && x.PropertySettings.Count > 1), "No collection with only property settings.");
+			Assert.IsTrue(collections.Any(x => x.StringSettings.Count > 1 && x.BooleanSettings.Any() && x.DiscreteSettings.Any() && x.FileSettings.Any()), "No collection with settings of every type.");
+		}
+
+		[TestMethod]
+		public void ReadPartialPropertySettingCollections_UnknownField_ThrowsBeforeReading()
+		{
+			var unknownField = new Exposer<PropertySettingCollection, string>(x => x.LinkedObjectId, "Unknown");
+
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.PropertySettingCollections.ReadPartial(PropertySettingCollectionFilter.WithFields(unknownField)));
 		}
 
 		[TestMethod]
