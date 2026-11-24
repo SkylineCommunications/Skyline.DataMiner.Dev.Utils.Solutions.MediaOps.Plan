@@ -10,6 +10,7 @@
 	using Skyline.DataMiner.Net.Profiles;
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
@@ -17,6 +18,7 @@
 	{
 		private readonly object connectionLock = new object();
 		private readonly Config config;
+		private readonly IPropertyAttachmentStore? simulatedAttachments;
 
 		private readonly System.Threading.AsyncLocal<ConnectionHelpers> helpers = new System.Threading.AsyncLocal<ConnectionHelpers>();
 
@@ -26,6 +28,7 @@
 		public IntegrationTestContext()
 		{
 			config = Config.Load();
+			simulatedAttachments = config.UseRealDma ? null : new SimulatedPropertyAttachmentStore();
 			Initialize();
 		}
 
@@ -37,7 +40,7 @@
 
 			try
 			{
-				var api = new ConnectionHelpers(newConnection, connectionGeneration + 1, Logger).Api;
+				var api = new ConnectionHelpers(newConnection, connectionGeneration + 1, Logger, simulatedAttachments).Api;
 				_ = api.Capabilities.SystemCapabilities.ResourceType;
 			}
 			catch
@@ -147,7 +150,7 @@
 				{
 					lock (connectionLock)
 					{
-						current = new ConnectionHelpers(connection, connectionGeneration, Logger);
+						current = new ConnectionHelpers(connection, connectionGeneration, Logger, simulatedAttachments);
 					}
 
 					helpers.Value = current;
@@ -241,11 +244,16 @@
 
 		private sealed class ConnectionHelpers
 		{
-			public ConnectionHelpers(IConnection connection, int generation, ConsolePlanLogger logger)
+			public ConnectionHelpers(IConnection connection, int generation, ConsolePlanLogger logger, IPropertyAttachmentStore? simulatedAttachments)
 			{
 				Generation = generation;
 
 				Api = connection.GetMediaOpsPlanApi() ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+				if (simulatedAttachments != null)
+				{
+					((MediaOpsPlanApi)Api).PropertyAttachments = simulatedAttachments;
+				}
+
 				Dms = connection.GetDms() ?? throw new NullReferenceException("Unable to get DMS");
 
 				Api.SetLogger(logger);
