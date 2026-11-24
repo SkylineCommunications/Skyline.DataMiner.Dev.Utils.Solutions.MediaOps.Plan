@@ -22,6 +22,8 @@ Depending on your project type, one of the following additional packages is also
 > [!NOTE]
 > This library targets `.NET Framework 4.8`.
 
+Adding the NuGet package or creating an API client does not install the DOM schema. If you are writing a custom installer, follow [Installing the DOM schema](Advanced%20Topics.md#installing-the-dom-schema).
+
 ## Entry Point
 
 The `MediaOpsPlanApi` class is the main entry point to the MediaOps.PLAN API.

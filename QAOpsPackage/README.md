@@ -16,22 +16,39 @@ The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enable
 
 ## Execution and package contents
 
-`qaops.config.xml` sets `PerformPackageInstallation` to `false`. QAOps extracts the test content and runs the pipeline against the configured target, where MediaOps Plan and its prerequisites are already installed.
+The QAOps target must run DataMiner 10.6.11 or later. For a local build, store an organization key that can download the Catalog prerequisites in the project's `skyline:sdk:dataminertoken` user secret. CI reads the key from the `SKYLINE__SDK__DATAMINERTOKEN` GitHub secret.
+
+`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. The current setup order is:
+
+1. `InstallDefaultContent()` installs the embedded Catalog packages in filename order: Standard Data Model Registration, Categories, then the **full MediaOps Plan solution**.
+
+   The solution release selected by `Range 2` runs its own installer and supplies the initial Plan and People & Organizations DOM schemas. Release `2.0.0`, for example, imports the shipped JSON schemas and seeds the same shared fixtures. The range does not pin that release or its installer behavior.
+
+2. The `InstallDomModules()` extension from the Plan DevPack built from this checkout reconciles Properties, Relationships, Resource Studio, and Workflow on top of the deployed solution. It does not reconcile the People & Organizations schema.
+3. The test package creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The fallback creates the reserved object type directly through DOM because the public API does not allow creating reserved names.
+
+**Intentional overlap for now:** QAOps reconciles the Plan schemas after the full solution has already installed them. The fixture checks are fallbacks and skip entries that the solution already seeded. Keep this redundancy until provisioning ownership is clarified. These tests exercise the source-built DevPack on top of a full solution deployment, not a fresh DevPack-only installation.
+
+Test initialization and reconnects do not run this setup.
 
 This package currently contains:
 
+- the Standard Data Model Registration, Categories, and MediaOps Plan packages declared in [`PackageContent/CatalogReferences.xml`](PackageContent/CatalogReferences.xml)
+- `Scripts/Install.xml` and its dependencies in `Scripts/InstallDependencies`, including the Plan DevPack built from this checkout
 - the harvested build output of `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests`, including the library built from the checked-out source
 - the QAOps pipeline scripts in `TestPackagePipeline`
+
+Visual Studio references the Plan DevPack project directly, and the solution builds the test project before the package. The install script compiles before it can install the embedded prerequisites. Because the SDK normally omits solution-library NuGet DLLs from `Scripts/InstallDependencies`, the package build stages the required DLLs from the active DevPack build and bundles them as direct assembly references.
 
 ## CI execution
 
 [`Plan-CICD.yml`](../.github/workflows/Plan-CICD.yml) runs validation, builds `MediaOps Plan.UnitTests.slnf` with MSBuild, and runs the complete simulated suite with VSTest. This unit build harvests test output into the runner's temporary directory to avoid Windows path-length limits.
 
-Manual runs, eligible current-head approvals of non-draft same-repository PRs targeting `main` or RC branches matching `*.*.X`, and tag pushes without `-alpha` then run the full suite through `dataminer-qaops test-run-and-wait`. Non-alpha tags require QAOps tests regardless of whether the tagged commit is on `main`.
+Manual runs, eligible current-head approvals of non-draft same-repository PRs targeting `main` or RC branches matching `*.*.X`, and pushes of release tags that do not contain `-alpha` then run the full suite through `dataminer-qaops test-run-and-wait`.
 
-Branch pushes run Skyline CICD after validation and simulated tests pass. Tags containing `-alpha` publish to GitHub Packages after simulated tests pass. Other prerelease tags require successful QAOps tests before publication to GitHub Packages. Stable tags also require matching release-branch ancestry and publish to nuget.org. NuGet publication runs only on tag pushes.
+Branch pushes run Skyline CICD after validation and simulated tests pass. Tags containing `-alpha` skip the QAOps publishing gate; all other release tags require QAOps to pass. Prerelease tags publish to GitHub Packages. Stable tags also require matching release-branch ancestry and publish to nuget.org. NuGet publication runs only on tag pushes.
 
-Tag-triggered QAOps runs and eligible approvals of PRs targeting RC branches (`*.*.X`) use the `dma-rc` environment after the applicable validation and simulated tests pass. Eligible approvals of PRs targeting `main` use `MediaOps RT`. Manual runs select an environment through `target_env`, including `dma-rc`. The selected environment can override the repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and `QAOPS_TOKEN` secret. Integration runs are serialized per target, so RC approvals and tag runs share the same queue.
+Tag-triggered QAOps runs and eligible approvals of PRs targeting RC branches (`*.*.X`) use the `MediaOps RC` environment after the applicable validation and simulated tests pass. Eligible approvals of PRs targeting `main` use `MediaOps RT`. Manual runs select an environment through `target_env`, including `MediaOps RC`. The selected environment can override the repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and `QAOPS_TOKEN` secret. Integration runs are serialized per target, so RC approvals and tag runs share the same queue.
 
 The workflow restores the test project before building `QAOpsPackage.csproj` with a tag-derived or run-specific version, revalidates the current PR head and target for approval-triggered runs, submits that exact `.dmtest`, and uploads the QAOps results JSON.
 
@@ -47,9 +64,6 @@ The integration tests create and track test data, and the test cleanup code atte
 - elements and services
 - core resources and core resource pools
 
-However, this cleanup is **best-effort**, not a hard guarantee. The cleanup code intentionally ignores cleanup failures so the package can continue disposing the remaining tracked objects. Because of that, this README should **not** claim that absolutely everything is always removed.
+Cleanup is **best-effort**. If a delete or deprecate operation fails, cleanup continues with the remaining tracked objects. Some temporary data may remain until the QAOps test environment is discarded.
 
-So the correct expectation is:
-
-- **Usually cleaned up:** the temporary test objects created by the integration tests.
-- **Not guaranteed to be fully clean in every failure scenario:** if one of the delete/deprecate operations fails, some test data can remain in the QAOps test environment until that environment is discarded.
+Test cleanup does not remove the installed Catalog packages, reconciled DOM schemas, or shared test fixtures.

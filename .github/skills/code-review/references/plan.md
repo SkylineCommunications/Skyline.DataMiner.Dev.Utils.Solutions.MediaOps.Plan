@@ -85,7 +85,7 @@ Start in [API/Querying](../../../../DevPack/API/Querying/) and [Storage](../../.
 - Trace filtering, paging, sorting, null/value conversion and API-to-DOM/core field mappings through the actual query path. Check supported combinations and page boundaries reached by the change.
 - Lightweight/persisted projections are not complete API objects. Follow their writes and readers before treating an omitted field as data loss.
 - Cache invalidation, subscriptions and connection-scoped state must be understood in their real ownership/lifetime. Follow readers/writers and disposal rather than proposing a new cache or polling layer without need.
-- [DOM models](../../../../DevPack/Storage/DOM/Model/) include generated schema-facing code. Stable IDs and mappings must agree with the installed solution schema, owned by the external Plan application package. A fresh simulation alone does not prove upgrade compatibility.
+- [DOM models](../../../../DevPack/Storage/DOM/Model/) contain generated wrappers and mappings. Check their stable IDs against the [Plan schema declarations](../../../../DevPack/Storage/DOM/Definitions/) or the owning DevPack for cross-module references. The application package runs the installers; it does not own these declarations. A fresh simulation alone does not prove upgrade compatibility.
 - Check the simulation's query/message/storage support when interpreting a test, but do not change simulation behavior to conceal a production mismatch.
 
 ## Further reading

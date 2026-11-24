@@ -1,4 +1,4 @@
-﻿<Project Sdk="Skyline.DataMiner.Sdk">
+<Project Sdk="Skyline.DataMiner.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net48</TargetFramework>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -7,27 +7,54 @@
 	<PropertyGroup>
 		<DataMinerType>TestPackage</DataMinerType>
 		<GenerateDataMinerPackage>True</GenerateDataMinerPackage>
-		<MinimumRequiredDmVersion>10.4.0.0 - 14003</MinimumRequiredDmVersion>
+		<MinimumRequiredDmVersion>10.6.11</MinimumRequiredDmVersion>
 		<!-- <MinimumRequiredDmWebVersion>10.6.2 (CU0)</MinimumRequiredDmWebVersion> -->
-		<Version>1.6.1</Version>
+		<Version>1.6.2</Version>
 		<VersionComment>Initial Version</VersionComment>
 		<!-- Do NOT fill in the Organization Token here. This points to either an Environment Variable skyline__sdk__dataminertoken holding the organization token or a Visual Studio User Secret holding the token. -->
 		<CatalogPublishKeyName>skyline:sdk:dataminertoken</CatalogPublishKeyName>
 		<CatalogDefaultDownloadKeyName>skyline:sdk:dataminertoken</CatalogDefaultDownloadKeyName>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" ReferenceOutputAssembly="false" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="Skyline.DataMiner.CICD.CSharpAnalysis.Analyzer">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="Skyline.DataMiner.ConnectorAPI.SkylineLockManager" />
 		<PackageReference Include="Skyline.DataMiner.Core.AppPackageInstaller" />
+		<PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" />
 		<PackageReference Include="Skyline.DataMiner.Dev.Automation" />
+		<PackageReference Include="Skyline.DataMiner.Utils.DOM" />
+		<PackageReference Include="Skyline.DataMiner.Utils.SecureCoding" />
 		<PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+	</ItemGroup>
+
+	<!-- Give the IDE a source reference without exposing its NuGet graph to the SDK's
+	     separate package evaluation, which omits solution-library DLLs. -->
+	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true' Or '$(DesignTimeBuild)' == 'true'">
+		<ProjectReference Include="..\DevPack\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj" />
+	</ItemGroup>
+
+	<!-- Keep the HintPaths relative and independent of Configuration: SDK 2.6.2
+	     reevaluates this project without the active build configuration. -->
+	<PropertyGroup>
+		<PlanBuildOutput>..\DevPack\bin\$(Configuration)\$(TargetFramework)</PlanBuildOutput>
+		<PlanInstallerDependencyPath>obj\PlanInstallerDependencies</PlanInstallerDependencyPath>
+	</PropertyGroup>
+	<ItemGroup>
+		<PlanInstallerAssembly Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan;
+			Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Live;
+			Skyline.DataMiner.Dev.Utils.Solutions.Categories;
+			Skyline.DataMiner.Dev.Utils.SDM.Abstractions;
+			Skyline.DataMiner.SDM.Registration.Common;
+			Skyline.DataMiner.SDM.SourceGenerator.Runtime;
+			Skyline.DataMiner.Utils.PerformanceAnalyzer" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(BuildingInsideVisualStudio)' != 'true' And '$(DesignTimeBuild)' != 'true'">
+		<Reference Include="@(PlanInstallerAssembly)">
+			<HintPath>$(PlanInstallerDependencyPath)\%(Identity).dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -47,4 +74,19 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
+
+	<!-- Temporary SDK 2.6.2 workaround: installer harvesting ignores ReferenceOutputAssembly="false".
+	     The solution orders the projects through BuildDependency. Standalone package builds
+	     restore and build tests explicitly without including them in Install.xml. -->
+	<Target Name="RestoreIntegrationTests" BeforeTargets="Restore" Condition="'$(SolutionFileName)' != 'MediaOps Plan.slnx'">
+		<MSBuild Projects="..\DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" Targets="Restore" Properties="Configuration=$(Configuration)" />
+	</Target>
+	<Target Name="BuildIntegrationTests" BeforeTargets="BeforeBuild" Condition="'$(SolutionFileName)' != 'MediaOps Plan.slnx'">
+		<MSBuild Projects="..\DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" Targets="Build" Properties="Configuration=$(Configuration)" />
+	</Target>
+	<Target Name="StagePlanInstallerDependencies" BeforeTargets="ResolveAssemblyReferences" Condition="'$(DesignTimeBuild)' != 'true'">
+		<Copy SourceFiles="@(PlanInstallerAssembly->'$(PlanBuildOutput)\%(Identity).dll')" DestinationFolder="$(PlanInstallerDependencyPath)" SkipUnchangedFiles="true">
+			<Output TaskParameter="CopiedFiles" ItemName="FileWrites" />
+		</Copy>
+	</Target>
 </Project>

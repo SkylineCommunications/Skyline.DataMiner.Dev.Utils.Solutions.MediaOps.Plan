@@ -19,6 +19,10 @@ Depending on your project type, one of the following additional packages is also
 > [!NOTE]
 > This library targets `.NET Framework 4.8`.
 
+Adding the NuGet package or creating an API client does not install the DOM schema. Deployment code calls the `InstallDomModules()` extension from `Skyline.DataMiner.Solutions.MediaOps.Plan.API` on a client created by the Plan DevPack. It reconciles only Properties, Relationships, Resource Studio, and Workflow.
+
+When deploying MediaOps Plan, install the People & Organizations schema through its own DevPack first. See [Installing the DOM schema](Documentation/Advanced%20Topics.md#installing-the-dom-schema) for both steps.
+
 ## Documentation
 
 | Document | Description |
@@ -33,7 +37,7 @@ External resources:
 
 ## Regression testing
 
-Tests use C# and MSTest. The same test assembly supports in-memory simulation for unit tests and a real DataMiner System with MediaOps Plan deployed for integration tests. Simulation is the default.
+Tests use C# and MSTest. The same test assembly supports in-memory simulation for unit tests and a real DataMiner System for integration tests. Simulation is the default.
 
 Testing uses the following projects:
 
@@ -49,7 +53,7 @@ The [Plan CICD](./.github/workflows/Plan-CICD.yml) workflow runs validation and 
 
 - Approval of the current head commit of a non-draft PR from this repository targeting `main` or an RC branch matching `*.*.X`.
 - Manual workflow runs.
-- Release tag pushes whose names do not contain `-alpha`.
+- Pushes of release tags that do not contain `-alpha`.
 
 Pushes and merges to `main` or RC branches run validation and simulated tests but do not automatically trigger QAOps testing.
 
@@ -65,7 +69,7 @@ Pushes and merges to `main` or RC branches run validation and simulated tests bu
 | Other prerelease tag | Yes | Yes | Yes | Yes |
 | Stable release tag | Yes | Yes | Yes | Yes |
 
-Each stage requires the applicable preceding checks to pass. Stable release tags must be contained in the matching `<major>.<minor>.X` branch. NuGet publication runs only on tag pushes: alpha tags publish after simulated tests, while other tags also require successful QAOps tests. Prerelease packages go to GitHub Packages; stable packages go to nuget.org.
+Each stage requires the applicable preceding checks to pass. Stable release tags must be contained in the matching `<major>.<minor>.X` branch. NuGet publication runs only on tag pushes. Tags containing `-alpha` skip the QAOps publishing gate; all other release tags require QAOps to pass. Prerelease packages go to GitHub Packages; stable packages go to nuget.org.
 
 The **Unit Tests** job builds [MediaOps Plan.UnitTests.slnf](./MediaOps%20Plan.UnitTests.slnf) with MSBuild and runs the complete test assembly with VSTest and `MEDIAOPS_PLAN_USE_REAL_DMA=false`. Test output is harvested into the runner's temporary directory to avoid Windows path-length limits.
 
@@ -77,23 +81,24 @@ The **Integration Tests** job (`integration_tests`):
 4. Waits for QAOps to execute the harvested MSTest suite against the real DataMiner System.
 5. Propagates the QAOps exit status to CI and uploads the results JSON as the `qaops-results` artifact when available.
 
-The package does **not** deploy MediaOps Plan or its prerequisites. `PerformPackageInstallation` is `false`; the target must already have the required solution and dependencies installed.
+`PerformPackageInstallation` is `true`. Before tests start, the QAOps package installer installs the Catalog packages for Standard Data Model Registration, Categories, and MediaOps Plan. It then reconciles the four Plan-owned DOM modules with the DevPack built from the selected commit and creates any missing shared test fixtures.
 
 By default, CI and local execution use eight method-level MSTest workers. QAOps runs targeting the same GitHub environment are queued to prevent overlapping test execution.
 
 ### QAOps configuration
 
-Configure the QAOps target through GitHub variables and secrets. The selected GitHub environment can override repository/organization values.
+Select a QAOps target running DataMiner 10.6.11 or later. Configure it through GitHub variables and secrets. The selected GitHub environment can override repository or organization values.
 
 | Configuration | Name | Purpose |
 | --- | --- | --- |
 | Variable | `QAOPS_CONFIGURATION_ID` | Selects the QAOps target. |
 | Variable | `QAOPS_TEST_SUITE_ID` | Selects the QAOps test suite. |
 | Secret | `QAOPS_TOKEN` | Authorizes the QAOps run. |
+| Secret | `SKYLINE__SDK__DATAMINERTOKEN` | Allows the SDK to download the Catalog prerequisites during the `.dmtest` build. |
 
 `GITHUB_TOKEN` supplies access to the GitHub NuGet feed. The QAOps job uses a Windows runner and .NET 10.
 
-Eligible PR approvals targeting `main` use `MediaOps RT`. Eligible approvals targeting RC branches (`*.*.X`) and non-alpha tag pushes use `dma-rc`. Manual runs use the selected `target_env`, which defaults to `MediaOps RT`. Integration runs are serialized per GitHub environment, so RC approvals and release tags share the same queue.
+Eligible PR approvals targeting `main` use `MediaOps RT`. Eligible approvals targeting RC branches (`*.*.X`) and pushes of release tags that do not contain `-alpha` use `MediaOps RC`. Manual runs use the selected `target_env`, which defaults to `MediaOps RT`. Integration runs are serialized per GitHub environment, so RC approvals and tag-triggered QAOps runs share the same queue.
 
 ## Local test setup
 

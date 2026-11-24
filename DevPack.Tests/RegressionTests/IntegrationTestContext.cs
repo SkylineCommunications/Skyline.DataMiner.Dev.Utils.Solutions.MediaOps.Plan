@@ -31,13 +31,23 @@
 
 		private void Initialize()
 		{
-			connection = config.UseRealDma
+			var newConnection = config.UseRealDma
 				? CreateRealConnection(config)
 				: CreateSimulatedConnection();
 
-			connectionGeneration++;
+			try
+			{
+				var api = new ConnectionHelpers(newConnection, connectionGeneration + 1, Logger).Api;
+				_ = api.Capabilities.SystemCapabilities.ResourceType;
+			}
+			catch
+			{
+				newConnection.Dispose();
+				throw;
+			}
 
-			_ = new ConnectionHelpers(connection, connectionGeneration, Logger).Api.Capabilities.SystemCapabilities.ResourceType;
+			connection = newConnection;
+			connectionGeneration++;
 		}
 
 		/// <summary>
