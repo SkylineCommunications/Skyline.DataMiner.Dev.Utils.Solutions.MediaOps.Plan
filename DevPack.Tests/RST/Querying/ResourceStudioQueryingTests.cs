@@ -648,5 +648,93 @@ namespace RT_MediaOps.Plan.RST.Querying
 				QueryAssert.ReadPaged(TestContext.Api.Configurations, expectedObjects, query, 2);
 			}
 		}
+
+		// Partial reads of resource properties.
+		[TestMethod]
+		public void ReadPartialResourcePropertiesWithQuery_ReturnsSamePropertiesInSameOrder()
+		{
+			foreach (var (expectedObjects, query) in ResourcePropertyQueryTestCases)
+			{
+				var partialProperties = TestContext.Api.ResourceProperties.ReadPartial(query.WithFields(ResourcePropertyExposers.Name)).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialProperties.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialProperties.Select(x => x.GetValue(ResourcePropertyExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedResourcePropertiesWithQuery_DefaultPageSize_ReturnsSamePropertiesInOnePage()
+		{
+			foreach (var (expectedObjects, query) in ResourcePropertyQueryTestCases)
+			{
+				var pages = TestContext.Api.ResourceProperties.ReadPartialPaged(query.WithFields(ResourcePropertyExposers.Name)).ToList();
+
+				Assert.AreEqual(1, pages.Count, $"Query: {query}");
+				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(ResourcePropertyExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedResourcePropertiesWithQuery_CustomPageSize_SplitsPropertiesOverPages()
+		{
+			var repository = (ResourcePropertiesRepository)TestContext.Api.ResourceProperties;
+
+			foreach (var (expectedObjects, query) in ResourcePropertyQueryTestCases)
+			{
+				var pages = repository.ReadPartialPaged(query.WithFields(ResourcePropertyExposers.Name), 2).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
+				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
+			}
+
+			Assert.IsTrue(ResourcePropertyQueryTestCases.Any(x => x.Item1.Length > 2), "No query returns more than one page.");
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedResourcePropertiesWithFilter_ReturnsAllProperties()
+		{
+			var pages = TestContext.Api.ResourceProperties.ReadPartialPaged(PropertyFilter.WithFields(ResourcePropertyExposers.Name)).ToList();
+			var propertiesById = TestContext.Api.ResourceProperties.Read(PropertyFilter).ToDictionary(x => x.Id);
+
+			Assert.AreEqual(1, pages.Count);
+			CollectionAssert.AreEquivalent(propertiesById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+
+			foreach (var partialProperty in pages[0])
+			{
+				Assert.AreEqual(propertiesById[partialProperty.Id].Name, partialProperty.GetValue(ResourcePropertyExposers.Name));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialResourcePropertiesWithFilter_ReturnsSameValuesAsFullRead()
+		{
+			var partialFilter = PropertyFilter.WithFields(ResourcePropertyExposers.Id, ResourcePropertyExposers.Name);
+
+			var partialPropertiesById = TestContext.Api.ResourceProperties.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var properties = TestContext.Api.ResourceProperties.Read(PropertyFilter).ToList();
+
+			Assert.AreEqual(properties.Count, partialPropertiesById.Count);
+			Assert.IsTrue(properties.Count > 1, "The setup must contain multiple resource properties.");
+
+			foreach (var property in properties)
+			{
+				var partialProperty = partialPropertiesById[property.Id];
+
+				Assert.AreEqual(property.Id, partialProperty.GetValue(ResourcePropertyExposers.Id));
+				Assert.AreEqual(property.Name, partialProperty.GetValue(ResourcePropertyExposers.Name));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialResourceProperties_UnknownField_ThrowsBeforeReading()
+		{
+			var unknownField = new Exposer<ResourceProperty, string>(x => x.Name, "Unknown");
+
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.ResourceProperties.ReadPartial(PropertyFilter.WithFields(unknownField)));
+		}
 	}
 }
