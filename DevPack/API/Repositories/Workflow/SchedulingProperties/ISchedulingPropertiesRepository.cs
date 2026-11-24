@@ -12,7 +12,8 @@
 	/// <remarks>
 	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialFilterElement{T})"/>) support every
 	/// field of <see cref="PropertyExposers"/> and return the same properties, with the same values, as a full read: only
-	/// properties in the scheduling scope with a known property type are returned. Every field holds a single value, read with
+	/// properties in the scheduling scope with a property type are returned, and an unknown property type throws an
+	/// <see cref="ArgumentOutOfRangeException"/>. Every field holds a single value, read with
 	/// <see cref="PartialObject{T}.GetValue{TField}(Net.Messages.SLDataGateway.Exposer{T, TField})"/>, and no data stored
 	/// outside the property is read.
 	/// <see cref="IPartialPageableRepository{T}.ReadPartialPaged(IPartialQuery{T})"/> returns the same objects in pages of 200.

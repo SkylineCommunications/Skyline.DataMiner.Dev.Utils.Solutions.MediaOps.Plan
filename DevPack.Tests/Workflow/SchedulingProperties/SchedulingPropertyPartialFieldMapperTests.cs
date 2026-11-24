@@ -105,13 +105,24 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 				CreateDomPartialObject(stringId, Field(PropertyInfo.PropertyType, "string")),
 				CreateDomPartialObject(Guid.NewGuid()),
 				CreateDomPartialObject(discreteId, Field(PropertyInfo.PropertyType, "discrete")),
-				CreateDomPartialObject(Guid.NewGuid(), Field(PropertyInfo.PropertyType, "unknown")),
 				CreateDomPartialObject(fileId, Field(PropertyInfo.PropertyType, "file")),
 			};
 
 			var partialProperties = CreatePartialProperties(domPartialObjects, PropertyExposers.Id);
 
 			CollectionAssert.AreEqual(new[] { stringId, discreteId, fileId }, partialProperties.Select(x => x.Id).ToList());
+		}
+
+		[TestMethod]
+		public void CreatePartialProperties_UnknownPropertyType_ThrowsLikeAFullRead()
+		{
+			var domPartialObjects = new[]
+			{
+				CreateDomPartialObject(Guid.NewGuid(), Field(PropertyInfo.PropertyType, "string")),
+				CreateDomPartialObject(Guid.NewGuid(), Field(PropertyInfo.PropertyType, "unknown")),
+			};
+
+			Assert.ThrowsException<ArgumentOutOfRangeException>(() => CreatePartialProperties(domPartialObjects, PropertyExposers.Name));
 		}
 
 		[TestMethod]
