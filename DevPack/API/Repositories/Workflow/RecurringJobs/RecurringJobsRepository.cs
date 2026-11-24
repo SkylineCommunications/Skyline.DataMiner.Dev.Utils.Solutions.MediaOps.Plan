@@ -68,7 +68,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
+			return RecurringJob.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public RecurringJob Complete(RecurringJob recurringJob)
@@ -120,7 +120,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
+			return RecurringJob.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public long Count()
@@ -179,7 +179,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
+			return RecurringJob.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public RecurringJob Create(RecurringJob oToCreate)
@@ -216,7 +216,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
+			return RecurringJob.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public void Delete(Guid apiObjectId)
@@ -285,9 +285,12 @@
 				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<RecurringJob> Iterator()
 				{
+					// The profile parameters of the orchestration settings are shared by every recurring job of this read.
+					var parameters = new ProfileParameterLookup(PlanApi);
+
 					foreach (var domRecurringJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobs(domFilter))
 					{
-						yield return new RecurringJob(PlanApi, domRecurringJob);
+						yield return new RecurringJob(PlanApi, domRecurringJob, parameters);
 					}
 				}
 
@@ -311,9 +314,12 @@
 
 			IEnumerable<RecurringJob> Iterator()
 			{
+				// The profile parameters of the orchestration settings are shared by every recurring job of this read.
+				var parameters = new ProfileParameterLookup(PlanApi);
+
 				foreach (var domRecurringJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobs(domQuery))
 				{
-					yield return new RecurringJob(PlanApi, domRecurringJob);
+					yield return new RecurringJob(PlanApi, domRecurringJob, parameters);
 				}
 			}
 
@@ -448,7 +454,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
+			return RecurringJob.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public RecurringJob Update(RecurringJob oToUpdate)
@@ -507,7 +513,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<RecurringJob>(page.Select(x => new RecurringJob(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<RecurringJob>(RecurringJob.Parse(PlanApi, page), pageNumber++, pageSize, hasNext);
 			}
 		}
 
@@ -523,7 +529,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<RecurringJob>(page.Select(x => new RecurringJob(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<RecurringJob>(RecurringJob.Parse(PlanApi, page), pageNumber++, pageSize, hasNext);
 			}
 		}
 
