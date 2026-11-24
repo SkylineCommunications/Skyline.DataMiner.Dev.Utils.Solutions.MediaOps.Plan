@@ -7,6 +7,7 @@ namespace RT_MediaOps.Plan.Workflow
 	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.Simulation;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
@@ -128,6 +129,67 @@ namespace RT_MediaOps.Plan.Workflow
 			setup.ReadApi.Jobs.Validate(jobs);
 
 			Assert.AreEqual(1, setup.Counter.ConfigurationReads, "The orchestration settings were read once per job.");
+		}
+
+		[TestMethod]
+		public void AccessJobSettings_AfterAFailedRead_ReadsTheStoredSettingsAgain()
+		{
+			var setup = new Setup();
+			var jobId = setup.CreateJob(nodeCount: 1).Id;
+			var job = setup.ReadApi.Jobs.Read(jobId);
+
+			setup.Counter.FailNextConfigurationRead = true;
+			try
+			{
+				_ = job.OrchestrationSettings;
+				Assert.Fail("The simulated read failure was not raised.");
+			}
+			catch (AssertFailedException)
+			{
+				throw;
+			}
+			catch (Exception)
+			{
+				// Expected: the read failed.
+			}
+
+			Assert.AreEqual("Job", ((TextConfigurationSetting)job.OrchestrationSettings.Configurations.Single()).Value, "A failed read made the stored settings look missing.");
+			Assert.AreEqual(10m, ((NumberCapacitySetting)job.NodeGraph.Nodes.Single().OrchestrationSettings.Capacities.Single()).Value);
+			Assert.IsFalse(job.HasChanges);
+		}
+
+		[TestMethod]
+		public void LoadSettingsOfJobs_ProfileParametersAlreadyReadForAJobOfTheSameRead_DoesNotReadThemAgain()
+		{
+			var setup = new Setup();
+			var jobIds = new[] { setup.CreateJob(nodeCount: 1).Id, setup.CreateJob(nodeCount: 1).Id };
+			var jobs = setup.ReadApi.Jobs.Read(jobIds).ToList();
+			_ = jobs[0].OrchestrationSettings;
+
+			setup.Counter.Reset();
+			Job.LoadOrchestrationSettings(jobs);
+
+			Assert.AreEqual(1, setup.Counter.ConfigurationReads);
+			Assert.AreEqual(0, setup.Counter.ProfileParameterReads, "The batch load read profile parameters that the read already resolved.");
+		}
+
+		[TestMethod]
+		public void GetResourcesPerPool_DeferredPools_ReadsTheirSettingsOnce()
+		{
+			var setup = new Setup();
+			var poolIds = Enumerable.Range(0, 3).Select(i =>
+			{
+				var pool = new ResourcePool { Name = $"{setup.Prefix}_LinkedPool_{i}" };
+				pool.OrchestrationSettings.AddConfiguration(new TextConfigurationSetting(setup.TextConfiguration) { Value = "Pool" });
+				return setup.Api.ResourcePools.Create(pool).Id;
+			}).ToList();
+
+			setup.Counter.Reset();
+			var deferredPools = setup.ReadApi.ResourcePools.Read(new ORFilterElement<ResourcePool>(poolIds.Select(x => ResourcePoolExposers.Id.Equal(x)).ToArray()));
+			var resourcesPerPool = setup.ReadApi.Resources.GetResourcesPerPool(deferredPools);
+
+			Assert.AreEqual(3, resourcesPerPool.Count);
+			Assert.AreEqual(1, setup.Counter.ConfigurationReads, "The settings of the pools were read more than once.");
 		}
 
 		[TestMethod]
