@@ -17,6 +17,8 @@
 		private StorageWorkflow.WorkflowsInstance updatedInstance;
 		private PropertySettingsContext propertiesContext;
 		private PropertySettingsScope propertySettingsScope;
+		private WorkflowOrchestrationSettingsContext orchestrationSettingsContext;
+		private OrchestrationSettingsHolder<WorkflowOrchestrationSettings> orchestrationSettingsHolder;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Workflow"/> class.
@@ -44,9 +46,13 @@
 			ConfigureNodeGraphSwapHooks();
 		}
 
-		internal Workflow(MediaOpsPlanApi planApi, StorageWorkflow.WorkflowsInstance instance) : base(instance.ID.Id)
+		internal Workflow(MediaOpsPlanApi planApi, StorageWorkflow.WorkflowsInstance instance, ProfileParameterLookup parameters = null) : base(instance.ID.Id)
 		{
+			orchestrationSettingsContext = WorkflowOrchestrationSettingsContext.ForOwner(planApi, parameters, instance.WorkflowExecution?.WorkflowConfiguration, instance.Nodes);
+
 			ParseInstance(planApi, instance);
+
+			orchestrationSettingsContext.Attach(NodeGraph.Nodes);
 
 			propertiesContext = new PropertySettingsContext(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
 			foreach (var node in NodeGraph.Nodes)
@@ -185,8 +191,13 @@
 
 		/// <summary>
 		/// Gets the orchestration settings assigned to this workflow.
+		/// Orchestration settings are loaded lazily in a single batch together with the orchestration settings of all nodes.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; private set; }
+		public OrchestrationSettings OrchestrationSettings
+		{
+			get => orchestrationSettingsHolder.Value;
+			private set => orchestrationSettingsHolder = OrchestrationSettingsHolder<WorkflowOrchestrationSettings>.FromValue((WorkflowOrchestrationSettings)value);
+		}
 
 		/// <summary>
 		/// Gets the node graph containing all nodes and connections that define the workflow structure.
@@ -214,6 +225,48 @@
 		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
 
 		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
+
+		// Orchestration settings are stored outside the workflow instance, so they are not covered by the hash-based tracking.
+		internal override bool HasChanges => base.HasChanges
+			|| (!IsNew && (orchestrationSettingsHolder.HasChanges || NodeGraph.Nodes.Any(x => x.HasOrchestrationSettingChanges)));
+
+		/// <summary>
+		/// Reads the orchestration settings of the specified workflows and their nodes that were not read yet, using a
+		/// single call for all of them.
+		/// </summary>
+		/// <param name="workflows">The workflows.</param>
+		internal static void LoadOrchestrationSettings(IEnumerable<Workflow> workflows)
+		{
+			if (workflows == null)
+			{
+				throw new ArgumentNullException(nameof(workflows));
+			}
+
+			WorkflowOrchestrationSettingsContext.LoadAll(workflows.Where(x => x != null).Select(x => x.orchestrationSettingsContext));
+		}
+
+		/// <summary>
+		/// Parses the specified workflow instances. The orchestration settings are not read: they are read lazily per
+		/// workflow, while the profile parameters they refer to are shared by all parsed workflows.
+		/// </summary>
+		/// <param name="planApi">The API used to read the referenced data.</param>
+		/// <param name="instances">The workflow instances to parse.</param>
+		/// <returns>The parsed workflows.</returns>
+		internal static List<Workflow> Parse(MediaOpsPlanApi planApi, IEnumerable<StorageWorkflow.WorkflowsInstance> instances)
+		{
+			if (planApi == null)
+			{
+				throw new ArgumentNullException(nameof(planApi));
+			}
+
+			if (instances == null)
+			{
+				throw new ArgumentNullException(nameof(instances));
+			}
+
+			var parameters = new ProfileParameterLookup(planApi);
+			return instances.Select(x => new Workflow(planApi, x, parameters)).ToList();
+		}
 
 		/// <summary>
 		/// Creates a duplicate of this workflow with a newly generated identifier. The duplicate is a brand new,
@@ -342,7 +395,7 @@
 				hash = (hash * 23) + PostRoll.GetHashCode();
 				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
 				hash = (hash * 23) + (JobTypeCategoryId != null ? JobTypeCategoryId.GetHashCode() : 0);
-				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+				hash = (hash * 23) + orchestrationSettingsHolder.GetOwnerHashCode();
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
 
@@ -392,7 +445,7 @@
 			updatedInstance.WorkflowInfo.WorkflowNotes = Notes;
 			updatedInstance.WorkflowInfo.JobType = !string.IsNullOrEmpty(JobTypeCategoryId) ? JobTypeCategoryId : null;
 
-			updatedInstance.WorkflowExecution.WorkflowConfiguration = OrchestrationSettings.Id;
+			updatedInstance.WorkflowExecution.WorkflowConfiguration = orchestrationSettingsHolder.Id;
 
 			updatedInstance.WorkflowInfo.Priority = EnumExtensions.MapEnum<WorkflowPriority, StorageWorkflow.SlcWorkflowIds.Enums.Priority>(Priority);
 
@@ -442,22 +495,7 @@
 			Priority = instance.WorkflowInfo.Priority.HasValue ? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Priority, WorkflowPriority>(instance.WorkflowInfo.Priority.Value) : WorkflowPriority.Normal;
 			State = EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Behaviors.Workflow_Behavior.StatusesEnum, WorkflowState>(instance.Status);
 
-			if (instance.WorkflowExecution.WorkflowConfiguration == null || instance.WorkflowExecution.WorkflowConfiguration == Guid.Empty)
-			{
-				OrchestrationSettings = new WorkflowOrchestrationSettings();
-			}
-			else
-			{
-				var domConfiguration = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations([instance.WorkflowExecution.WorkflowConfiguration.Value]).FirstOrDefault();
-				if (domConfiguration != null)
-				{
-					OrchestrationSettings = new WorkflowOrchestrationSettings(planApi, domConfiguration);
-				}
-				else
-				{
-					OrchestrationSettings = new WorkflowOrchestrationSettings();
-				}
-			}
+			orchestrationSettingsHolder = orchestrationSettingsContext.CreateHolder(instance.WorkflowExecution.WorkflowConfiguration);
 
 			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships, instance.NodeGroups);
 		}

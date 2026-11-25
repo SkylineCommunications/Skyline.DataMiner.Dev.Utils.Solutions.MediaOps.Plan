@@ -72,7 +72,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Workflow(PlanApi, x)).ToList();
+			return Workflow.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public long Count()
@@ -131,7 +131,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Workflow(PlanApi, x)).ToList();
+			return Workflow.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Workflow Create(Workflow oToCreate)
@@ -168,7 +168,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Workflow(PlanApi, x)).ToList();
+			return Workflow.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public void Delete(Guid apiObjectId)
@@ -237,9 +237,12 @@
 				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<Workflow> Iterator()
 				{
+					// The profile parameters of the orchestration settings are shared by every workflow of this read.
+					var parameters = new ProfileParameterLookup(PlanApi);
+
 					foreach (var domWorkflow in PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(domFilter))
 					{
-						yield return new Workflow(PlanApi, domWorkflow);
+						yield return new Workflow(PlanApi, domWorkflow, parameters);
 					}
 				}
 
@@ -263,9 +266,12 @@
 
 			IEnumerable<Workflow> Iterator()
 			{
+				// The profile parameters of the orchestration settings are shared by every workflow of this read.
+				var parameters = new ProfileParameterLookup(PlanApi);
+
 				foreach (var domWorkflow in PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(domQuery))
 				{
-					yield return new Workflow(PlanApi, domWorkflow);
+					yield return new Workflow(PlanApi, domWorkflow, parameters);
 				}
 			}
 
@@ -400,7 +406,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Workflow(PlanApi, x)).ToList();
+			return Workflow.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Workflow Update(Workflow oToUpdate)
@@ -434,7 +440,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<Workflow>(Workflow.Parse(PlanApi, page), pageNumber++, pageSize, hasNext);
 			}
 		}
 
@@ -450,7 +456,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<Workflow>(Workflow.Parse(PlanApi, page), pageNumber++, pageSize, hasNext);
 			}
 		}
 

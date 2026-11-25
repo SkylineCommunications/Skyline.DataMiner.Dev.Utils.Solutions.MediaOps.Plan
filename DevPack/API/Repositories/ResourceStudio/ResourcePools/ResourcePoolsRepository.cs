@@ -556,9 +556,13 @@
 				throw new ArgumentNullException(nameof(resourcePools));
 			}
 
-			var apiPoolsById = resourcePools.ToDictionary(x => x.Id);
+			// Enumerated once: a deferred sequence would hand out new pools on every enumeration, so the settings
+			// would be read in a batch for pools that are thrown away and then once per pool for the returned keys.
+			var pools = resourcePools.ToList();
 
-			var poolFilters = resourcePools
+			var apiPoolsById = pools.ToDictionary(x => x.Id);
+
+			var poolFilters = pools
 				.Select(x => DomInstanceExposers.FieldValues
 					.DomInstanceField(StorageResourceStudio.SlcResource_StudioIds.Sections.ResourcePoolLinks.LinkedResourcePool)
 					.Equal(x.Id))
@@ -570,7 +574,11 @@
 			var domPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter);
 			var parentApiPoolsById = ToApiResourcePools(domPools).ToDictionary(x => x.Id);
 
-			var parentPoolsPerPool = resourcePools.ToDictionary(
+			// The pools are dictionary keys and callers typically collect the parents in sets, while pool equality covers
+			// the lazily read orchestration settings, so these are read in a single batch.
+			ResourcePool.LoadOrchestrationSettings(pools.Concat(parentApiPoolsById.Values));
+
+			var parentPoolsPerPool = pools.ToDictionary(
 				pool => pool,
 				pool =>
 					(IReadOnlyCollection<ResourcePool>)domPools
@@ -941,7 +949,8 @@
 				}
 
 				var flowRulesById = LoadFlowRules(items);
-				return items.Select(x => new ResourcePool(PlanApi, x, flowRulesById)).ToList();
+				var parameters = new ProfileParameterLookup(PlanApi);
+				return items.Select(x => new ResourcePool(PlanApi, x, flowRulesById, parameters)).ToList();
 			}
 		}
 

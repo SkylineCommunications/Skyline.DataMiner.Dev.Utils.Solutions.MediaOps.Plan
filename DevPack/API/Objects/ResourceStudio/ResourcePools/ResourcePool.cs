@@ -20,6 +20,8 @@
 		private StorageResourceStudio.ResourcepoolInstance updatedInstance;
 
 		private Guid coreResourcePoolId;
+		private ResourceStudioOrchestrationSettingsContext orchestrationSettingsContext;
+		private OrchestrationSettingsHolder<ResourceStudioOrchestrationSettings> orchestrationSettingsHolder;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ResourcePool"/> class.
@@ -45,12 +47,14 @@
 			FlowRules = new FlowRuleCollection(FlowRuleObject.ResourcePool(Id));
 		}
 
-		internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance, IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> flowRulesById) : base(instance.ID.Id)
+		internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance, IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> flowRulesById, ProfileParameterLookup parameters = null) : base(instance.ID.Id)
 		{
 			if (flowRulesById == null)
 			{
 				throw new ArgumentNullException(nameof(flowRulesById));
 			}
+
+			orchestrationSettingsContext = new ResourceStudioOrchestrationSettingsContext(planApi, parameters, [instance.ConfigurationInfo?.PoolConfiguration]);
 
 			ParseInstance(planApi, instance);
 			ParseFlowRules(planApi, instance, flowRulesById);
@@ -98,9 +102,13 @@
 		public IReadOnlyCollection<CapabilitySettings> Capabilities => capabilitySettings;
 
 		/// <summary>
-		/// Gets the orchestration settings assigned to this resource pool.
+		/// Gets the orchestration settings assigned to this resource pool. They are loaded lazily.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; private set; }
+		public OrchestrationSettings OrchestrationSettings
+		{
+			get => orchestrationSettingsHolder.Value;
+			private set => orchestrationSettingsHolder = OrchestrationSettingsHolder<ResourceStudioOrchestrationSettings>.FromValue((ResourceStudioOrchestrationSettings)value);
+		}
 
 		/// <summary>
 		/// Gets the flow rules of this resource pool, which define what may be connected before and after it. The flow rules are persisted together with the resource pool.
@@ -112,6 +120,24 @@
 		internal Guid CoreResourcePoolId => coreResourcePoolId;
 
 		internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
+
+		// Orchestration settings are stored outside the resource pool instance, so they are not covered by the hash-based tracking.
+		internal override bool HasChanges => base.HasChanges || (!IsNew && orchestrationSettingsHolder.HasChanges);
+
+		/// <summary>
+		/// Reads the orchestration settings of the specified resource pools that were not read yet, using a single call
+		/// for all of them.
+		/// </summary>
+		/// <param name="resourcePools">The resource pools.</param>
+		internal static void LoadOrchestrationSettings(IEnumerable<ResourcePool> resourcePools)
+		{
+			if (resourcePools == null)
+			{
+				throw new ArgumentNullException(nameof(resourcePools));
+			}
+
+			ResourceStudioOrchestrationSettingsContext.LoadAll(resourcePools.Where(x => x != null).Select(x => x.orchestrationSettingsContext));
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()
@@ -126,7 +152,7 @@
 				hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
 				hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
-				hash = (hash * 23) + OrchestrationSettings.GetHashCode();
+				hash = (hash * 23) + orchestrationSettingsHolder.GetOwnerHashCode();
 				hash = (hash * 23) + FlowRules.GetHashCode();
 
 				foreach (var linkedResourcePool in LinkedResourcePools.OrderBy(x => x.LinkedResourcePoolId).ToArray())
@@ -305,7 +331,7 @@
 			updatedInstance.ResourcePoolOther.IconImage = IconImage;
 			updatedInstance.ResourcePoolOther.URL = Url;
 
-			updatedInstance.ConfigurationInfo.PoolConfiguration = OrchestrationSettings.Id;
+			updatedInstance.ConfigurationInfo.PoolConfiguration = orchestrationSettingsHolder.Id;
 			updatedInstance.ConfigurationInfo.FlowRules = FlowRules.Id;
 
 			// Setting to null will not create a DOM section in storage.
@@ -371,22 +397,7 @@
 				capabilitySettings.Add(capability);
 			}
 
-			if (instance.ConfigurationInfo.PoolConfiguration == null || instance.ConfigurationInfo.PoolConfiguration == Guid.Empty)
-			{
-				OrchestrationSettings = new ResourceStudioOrchestrationSettings();
-			}
-			else
-			{
-				var domConfiguration = planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations([instance.ConfigurationInfo.PoolConfiguration.Value]).FirstOrDefault();
-				if (domConfiguration != null)
-				{
-					OrchestrationSettings = new ResourceStudioOrchestrationSettings(planApi, domConfiguration);
-				}
-				else
-				{
-					OrchestrationSettings = new ResourceStudioOrchestrationSettings();
-				}
-			}
+			orchestrationSettingsHolder = orchestrationSettingsContext.CreateHolder(instance.ConfigurationInfo.PoolConfiguration);
 		}
 	}
 }
