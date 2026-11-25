@@ -273,6 +273,10 @@
 				return;
 			}
 
+			// The validations below and the default job equality used to split the jobs touch the orchestration settings
+			// of every job and node, so they are read up front in a single batch.
+			Job.LoadOrchestrationSettings(apiJobs);
+
 			var toCreate = apiJobs.Where(x => x.IsNew).ToList();
 			var toUpdate = apiJobs.Except(toCreate).ToList();
 
@@ -423,6 +427,7 @@
 			// the rehydrated jobs would fall back to the stored (or, for a node that was just added, a missing)
 			// configuration and would be persisted pointing at settings that do not match what is being saved. The
 			// scope is closed again before anything is written, so the settings handler still compares against storage.
+			// The settings are read lazily, so they are loaded while the seeded scope is still open.
 			List<Job> changedJobs;
 			using (planApi.DomHelpers.SlcWorkflowHelper.BeginConfigurationScope(
 				configurationsToSeed: CollectConfigurationInstances(orchestrationSettingsByJob)))
@@ -430,6 +435,8 @@
 				changedJobs = mergedDomJobs
 					.Select(x => new Job(planApi, x))
 					.ToList();
+
+				Job.LoadOrchestrationSettings(changedJobs);
 			}
 
 			// The core reservations are updated before the re-validation, because that validation reads the reservation
@@ -763,6 +770,8 @@
 			CollectReferencedIds(apiJobs.ToList(), out var resourceIds, out _);
 			resourcesById = planApi.Resources.Read(resourceIds).ToDictionary(x => x.Id);
 
+			Job.LoadOrchestrationSettings(apiJobs);
+
 			foreach (var job in apiJobs.Where(IsValid))
 			{
 				var jobOrchestrationSettings = new List<OrchestrationSettings> { job.OrchestrationSettings };
@@ -1009,6 +1018,8 @@
 			{
 				ReportSuccess(caughtUpDomJobsById.TryGetValue(domJob.ID.Id, out var caughtUpDomJob) ? caughtUpDomJob : domJob);
 			}
+
+			Job.LoadOrchestrationSettings(tentativeJobs);
 
 			ValidateEndNotInPast(tentativeJobs);
 			ValidateAllNodesHaveResourceAssigned(tentativeJobs);
@@ -2638,7 +2649,10 @@
 				return;
 			}
 
-			foreach (var job in apiJobs.Where(IsValid))
+			var jobsToSync = apiJobs.Where(IsValid).ToList();
+			Job.LoadOrchestrationSettings(jobsToSync);
+
+			foreach (var job in jobsToSync)
 			{
 				var state = overrideState ?? job.State;
 
@@ -2702,6 +2716,8 @@
 			}
 
 			// The orchestration settings of the nodes are stored as separate DOM instances and must be removed as well.
+			Job.LoadOrchestrationSettings(apiJobs);
+
 			var orchestrationSettings = apiJobs
 				.SelectMany(x => new[] { x.OrchestrationSettings }.Concat(x.NodeGraph.Nodes.Select(node => node.OrchestrationSettings)))
 				.Where(x => x != null)
