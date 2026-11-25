@@ -20,6 +20,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private PropertySettingsContext propertiesContext;
 		private PropertySettingsScope propertySettingsScope;
+		private OrchestrationSettingsHolder<WorkflowOrchestrationSettings> orchestrationSettingsHolder;
+		private WorkflowOrchestrationSettingsContext orchestrationSettingsContext;
 
 		private protected NodeBase() : base()
 		{
@@ -27,7 +29,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			IsNew = true;
 
-			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			orchestrationSettingsHolder = OrchestrationSettingsHolder<WorkflowOrchestrationSettings>.FromValue(new WorkflowOrchestrationSettings());
 		}
 
 		private protected NodeBase(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection section)
@@ -50,8 +52,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Gets the orchestration settings assigned to this node.
+		/// Orchestration settings are loaded lazily in a single batch together with the orchestration settings of the owning object and all other nodes.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; private set; }
+		public OrchestrationSettings OrchestrationSettings => orchestrationSettingsHolder.Value;
+
+		internal bool HasOrchestrationSettingChanges => orchestrationSettingsHolder.HasChanges;
+
+		/// <inheritdoc/>
+		internal override bool HasChanges => base.HasChanges || (!IsNew && orchestrationSettingsHolder.HasChanges);
 
 		/// <summary>
 		/// Gets the custom property settings associated with this node.
@@ -194,6 +202,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			propertiesContext = context;
 		}
 
+		internal void SetOrchestrationSettingsContext(WorkflowOrchestrationSettingsContext context)
+		{
+			orchestrationSettingsContext = context;
+		}
+
 		private PropertySettingsScope GetOrCreateScope()
 			=> propertySettingsScope ??= new PropertySettingsScope(() => propertiesContext, Id);
 
@@ -242,7 +255,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				hash = (hash * 23) + Id.GetHashCode();
 				hash = (hash * 23) + (Alias != null ? Alias.GetHashCode() : 0);
 				hash = (hash * 23) + (IconImage != null ? IconImage.GetHashCode() : 0);
-				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+				hash = (hash * 23) + orchestrationSettingsHolder.GetOwnerHashCode();
 
 				return hash;
 			}
@@ -273,7 +286,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			updatedSection.NodeAlias = Alias;
 			updatedSection.NodeIcon = IconImage;
 
-			updatedSection.NodeConfiguration = OrchestrationSettings.Id;
+			updatedSection.NodeConfiguration = orchestrationSettingsHolder.Id;
 
 			ApplyChanges(updatedSection);
 
@@ -288,22 +301,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			Alias = section.NodeAlias;
 			IconImage = section.NodeIcon;
 
-			if (section.NodeConfiguration == null || section.NodeConfiguration == Guid.Empty)
-			{
-				OrchestrationSettings = new WorkflowOrchestrationSettings();
-			}
-			else
-			{
-				var domConfiguration = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations([section.NodeConfiguration.Value]).FirstOrDefault();
-				if (domConfiguration != null)
-				{
-					OrchestrationSettings = new WorkflowOrchestrationSettings(planApi, domConfiguration);
-				}
-				else
-				{
-					OrchestrationSettings = new WorkflowOrchestrationSettings();
-				}
-			}
+			// The settings are read on first access, through the context of the owner once it is set.
+			orchestrationSettingsHolder = OrchestrationSettingsHolder<WorkflowOrchestrationSettings>.Deferred(
+				section.NodeConfiguration,
+				id => (orchestrationSettingsContext ?? new WorkflowOrchestrationSettingsContext(planApi, null, [id])).Resolve(id),
+				() => new WorkflowOrchestrationSettings());
 		}
 	}
 }

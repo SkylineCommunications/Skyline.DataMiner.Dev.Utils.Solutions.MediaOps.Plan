@@ -595,7 +595,7 @@
 			}
 		}
 
-		internal static ScriptExecutionDetails FromStorage(MediaOpsPlanApi planApi, Storage.DOM.ScriptExecutionDetails storageScriptExecutionDetails)
+		internal static ScriptExecutionDetails FromStorage(MediaOpsPlanApi planApi, Storage.DOM.ScriptExecutionDetails storageScriptExecutionDetails, ProfileParameterLookup parameters = null)
 		{
 			if (storageScriptExecutionDetails == null)
 			{
@@ -611,7 +611,7 @@
 
 			scriptExecutionDetails.ParseStorageDummies(storageScriptExecutionDetails.Dummies, storageScriptExecutionDetails.DummyReferences);
 			scriptExecutionDetails.ParseStorageParameters(storageScriptExecutionDetails.Parameters, storageScriptExecutionDetails.ParameterReferences);
-			scriptExecutionDetails.ParseStorageProfileParameterValues(planApi, storageScriptExecutionDetails.ProfileParameterValues);
+			scriptExecutionDetails.ParseStorageProfileParameterValues(planApi, storageScriptExecutionDetails.ProfileParameterValues, parameters);
 			scriptExecutionDetails.ParseStorageDynamicInputs(storageScriptExecutionDetails.InputValues, storageScriptExecutionDetails.InputReferences);
 
 			return scriptExecutionDetails;
@@ -763,15 +763,15 @@
 			}
 		}
 
-		private void ParseStorageProfileParameterValues(MediaOpsPlanApi planApi, List<ProfileParameterValue> profileParameterValues)
+		private void ParseStorageProfileParameterValues(MediaOpsPlanApi planApi, List<ProfileParameterValue> profileParameterValues, ProfileParameterLookup parameters)
 		{
 			if (profileParameterValues == null || profileParameterValues.Count == 0)
 			{
 				return;
 			}
 
-			var parameterIds = profileParameterValues.Select(ppv => ppv.ProfileParameterId).Distinct();
-			var parametersById = planApi.CoreHelpers.ProfileProvider.GetParametersById(parameterIds).ToDictionary(x => x.ID);
+			var parameterIds = profileParameterValues.Select(ppv => ppv.ProfileParameterId);
+			var parametersById = (parameters ?? new ProfileParameterLookup(planApi)).GetParametersById(parameterIds);
 
 			foreach (var profileParameterValue in profileParameterValues)
 			{

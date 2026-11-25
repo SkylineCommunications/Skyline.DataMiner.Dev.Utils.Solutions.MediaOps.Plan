@@ -708,12 +708,19 @@
 				throw new ArgumentNullException(nameof(resourcePools));
 			}
 
-			var resourcePoolIds = resourcePools.Select(x => x.Id).Distinct();
+			// Enumerated once: a deferred sequence would hand out new pools on every enumeration, so the settings
+			// would be read in a batch for pools that are thrown away and then once per pool for the returned keys.
+			var pools = resourcePools.ToList();
+
+			var resourcePoolIds = pools.Select(x => x.Id).Distinct();
 			var resourcesInPoolsFilter = new ORFilterElement<Resource>(resourcePoolIds.Select(x => ResourceExposers.ResourcePoolIds.Contains(x)).ToArray());
 
 			var resources = PlanApi.Resources.Read(resourcesInPoolsFilter);
 
-			var resourcesPerPool = resourcePools.ToDictionary(
+			// The pools are dictionary keys, and their equality covers their lazily read orchestration settings.
+			ResourcePool.LoadOrchestrationSettings(pools);
+
+			var resourcesPerPool = pools.ToDictionary(
 				pool => pool,
 				pool => (IReadOnlyCollection<Resource>)resources.Where(x => x.ResourcePoolIds.Contains(pool.Id)).ToArray());
 
@@ -734,13 +741,20 @@
 				throw new ArgumentNullException(nameof(resourcePools));
 			}
 
-			var resourcePoolIds = resourcePools.Select(x => x.Id).Distinct();
+			// Enumerated once: a deferred sequence would hand out new pools on every enumeration, so the settings
+			// would be read in a batch for pools that are thrown away and then once per pool for the returned keys.
+			var pools = resourcePools.ToList();
+
+			var resourcePoolIds = pools.Select(x => x.Id).Distinct();
 			var resourcesInPoolsFilter = new ORFilterElement<Resource>(resourcePoolIds.Select(x => ResourceExposers.ResourcePoolIds.Contains(x)).ToArray());
 			var resourceStateFilter = ResourceExposers.State.Equal(state);
 
 			var resources = PlanApi.Resources.Read(resourcesInPoolsFilter.AND(resourceStateFilter));
 
-			var resourcesPerPool = resourcePools.ToDictionary(
+			// The pools are dictionary keys, and their equality covers their lazily read orchestration settings.
+			ResourcePool.LoadOrchestrationSettings(pools);
+
+			var resourcesPerPool = pools.ToDictionary(
 				pool => pool,
 				pool => (IReadOnlyCollection<Resource>)resources.Where(x => x.ResourcePoolIds.Contains(pool.Id)).ToArray());
 

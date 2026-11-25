@@ -86,6 +86,10 @@
 				return;
 			}
 
+			// Saving touches the orchestration settings of every pool, also through the default equality used to split
+			// the pools, so they are read up front in a single batch.
+			ResourcePool.LoadOrchestrationSettings(apiResourcePools);
+
 			var toCreate = apiResourcePools.Where(x => x.IsNew).ToList();
 			var toUpdate = apiResourcePools.Except(toCreate).ToList();
 
@@ -667,6 +671,8 @@
 			{
 				throw new ArgumentException($"Not all provided resource pools are valid", nameof(resourcePools));
 			}
+
+			ResourcePool.LoadOrchestrationSettings(resourcePools);
 
 			DomResourceStudioOrchestrationSettingsHandler.TryDelete(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out _);
 		}

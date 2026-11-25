@@ -53,7 +53,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="jobs">The jobs for which the configuration states are calculated.</param>
 		/// <exception cref="ArgumentNullException">When one of the arguments is <c>null</c>.</exception>
 		public ConfigurationStateCalculator(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, IEnumerable<Job> jobs)
-			: this(planApi, liveApi, GetSettings(jobs, x => x.OrchestrationSettings, x => x.NodeGraph))
+			: this(planApi, liveApi, GetSettings(LoadOrchestrationSettings(jobs, Job.LoadOrchestrationSettings), x => x.OrchestrationSettings, x => x.NodeGraph))
 		{
 		}
 
@@ -79,7 +79,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="recurringJobs">The recurring jobs for which the configuration states are calculated.</param>
 		/// <exception cref="ArgumentNullException">When one of the arguments is <c>null</c>.</exception>
 		public ConfigurationStateCalculator(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, IEnumerable<RecurringJob> recurringJobs)
-			: this(planApi, liveApi, GetSettings(recurringJobs, x => x.OrchestrationSettings, x => x.NodeGraph))
+			: this(planApi, liveApi, GetSettings(LoadOrchestrationSettings(recurringJobs, RecurringJob.LoadOrchestrationSettings), x => x.OrchestrationSettings, x => x.NodeGraph))
 		{
 		}
 
@@ -296,6 +296,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return false;
+		}
+
+		// The settings of every object are read lazily, so they are read up front in a single batch for all objects.
+		private static List<TObject> LoadOrchestrationSettings<TObject>(IEnumerable<TObject> objects, Action<IEnumerable<TObject>> load)
+		{
+			if (objects == null)
+			{
+				throw new ArgumentNullException(nameof(objects));
+			}
+
+			var list = objects.ToList();
+			load(list);
+			return list;
 		}
 
 		private static List<OrchestrationSettings> GetSettings<TObject, TNode>(IEnumerable<TObject> objects, Func<TObject, OrchestrationSettings> settingsSelector, Func<TObject, NodeGraph<TNode>> nodeGraphSelector)

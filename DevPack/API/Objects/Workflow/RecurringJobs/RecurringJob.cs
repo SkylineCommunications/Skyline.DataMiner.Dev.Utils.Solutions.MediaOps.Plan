@@ -23,6 +23,8 @@
 		private PropertySettingsScope propertySettingsScope;
 		private JobRelationshipsContext jobRelationshipsContext;
 		private JobRelationshipsScope jobRelationshipsScope;
+		private WorkflowOrchestrationSettingsContext orchestrationSettingsContext;
+		private OrchestrationSettingsHolder<WorkflowOrchestrationSettings> orchestrationSettingsHolder;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="RecurringJob"/> class.
@@ -49,9 +51,13 @@
 			ConfigureNodeGraphSwapHooks();
 		}
 
-		internal RecurringJob(MediaOpsPlanApi planApi, RecurringJobsInstance instance) : base(instance.ID.Id)
+		internal RecurringJob(MediaOpsPlanApi planApi, RecurringJobsInstance instance, ProfileParameterLookup parameters = null) : base(instance.ID.Id)
 		{
+			orchestrationSettingsContext = WorkflowOrchestrationSettingsContext.ForOwner(planApi, parameters, instance.JobExecution?.JobConfiguration, instance.Nodes);
+
 			ParseInstance(planApi, instance);
+
+			orchestrationSettingsContext.Attach(NodeGraph.Nodes);
 
 			propertiesContext = new PropertySettingsContext(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
 			foreach (var node in NodeGraph.Nodes)
@@ -190,8 +196,13 @@
 
 		/// <summary>
 		/// Gets the orchestration settings assigned to this recurring job.
+		/// Orchestration settings are loaded lazily in a single batch together with the orchestration settings of all nodes.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; private set; }
+		public OrchestrationSettings OrchestrationSettings
+		{
+			get => orchestrationSettingsHolder.Value;
+			private set => orchestrationSettingsHolder = OrchestrationSettingsHolder<WorkflowOrchestrationSettings>.FromValue((WorkflowOrchestrationSettings)value);
+		}
 
 		/// <summary>
 		/// Gets the node graph containing all nodes and connections that define the recurring job structure.
@@ -303,6 +314,48 @@
 		internal JobRelationshipsScope JobRelationshipsScope => jobRelationshipsScope;
 
 		internal JobRelationshipsContext JobRelationshipsContext => jobRelationshipsContext;
+
+		// Orchestration settings are stored outside the recurring job instance, so they are not covered by the hash-based tracking.
+		internal override bool HasChanges => base.HasChanges
+			|| (!IsNew && (orchestrationSettingsHolder.HasChanges || NodeGraph.Nodes.Any(x => x.HasOrchestrationSettingChanges)));
+
+		/// <summary>
+		/// Reads the orchestration settings of the specified recurring jobs and their nodes that were not read yet, using a
+		/// single call for all of them.
+		/// </summary>
+		/// <param name="recurringJobs">The recurring jobs.</param>
+		internal static void LoadOrchestrationSettings(IEnumerable<RecurringJob> recurringJobs)
+		{
+			if (recurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJobs));
+			}
+
+			WorkflowOrchestrationSettingsContext.LoadAll(recurringJobs.Where(x => x != null).Select(x => x.orchestrationSettingsContext));
+		}
+
+		/// <summary>
+		/// Parses the specified recurring job instances. The orchestration settings are not read: they are read lazily per
+		/// recurring job, while the profile parameters they refer to are shared by all parsed recurring jobs.
+		/// </summary>
+		/// <param name="planApi">The API used to read the referenced data.</param>
+		/// <param name="instances">The recurring job instances to parse.</param>
+		/// <returns>The parsed recurring jobs.</returns>
+		internal static List<RecurringJob> Parse(MediaOpsPlanApi planApi, IEnumerable<RecurringJobsInstance> instances)
+		{
+			if (planApi == null)
+			{
+				throw new ArgumentNullException(nameof(planApi));
+			}
+
+			if (instances == null)
+			{
+				throw new ArgumentNullException(nameof(instances));
+			}
+
+			var parameters = new ProfileParameterLookup(planApi);
+			return instances.Select(x => new RecurringJob(planApi, x, parameters)).ToList();
+		}
 
 		/// <summary>
 		/// Creates a new recurring job based on the specified job.
@@ -553,7 +606,7 @@
 				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
 				hash = (hash * 23) + (Description != null ? Description.GetHashCode() : 0);
 				hash = (hash * 23) + Priority.GetHashCode();
-				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+				hash = (hash * 23) + orchestrationSettingsHolder.GetOwnerHashCode();
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + Duration.GetHashCode();
 				hash = (hash * 23) + PreRollDuration.GetHashCode();
@@ -681,17 +734,7 @@
 				? EnumExtensions.MapEnum<SlcWorkflowIds.Enums.Jobconfigurationstatus, ConfigurationState>(instance.JobExecution.JobConfigurationStatus.Value)
 				: ConfigurationState.Unknown;
 
-			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
-			{
-				OrchestrationSettings = new WorkflowOrchestrationSettings();
-			}
-			else
-			{
-				var domConfiguration = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations([instance.JobExecution.JobConfiguration.Value]).FirstOrDefault();
-				OrchestrationSettings = domConfiguration != null
-					? new WorkflowOrchestrationSettings(planApi, domConfiguration)
-					: new WorkflowOrchestrationSettings();
-			}
+			orchestrationSettingsHolder = orchestrationSettingsContext.CreateHolder(instance.JobExecution.JobConfiguration);
 
 			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships, instance.NodeGroups);
 		}
@@ -837,7 +880,7 @@
 			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
 			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
 
-			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
+			updatedInstance.JobExecution.JobConfiguration = orchestrationSettingsHolder.Id;
 
 			updatedInstance.JobExecution.JobConfigurationStatus = EnumExtensions.TryMapEnum<ConfigurationState, SlcWorkflowIds.Enums.Jobconfigurationstatus>(ConfigurationState, out var storedConfigurationState)
 				? storedConfigurationState
