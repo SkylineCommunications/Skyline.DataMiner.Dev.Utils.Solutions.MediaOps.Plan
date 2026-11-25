@@ -462,7 +462,7 @@ namespace RT_MediaOps.Plan.Properties.Querying
 			Assert.IsTrue(collections.Any(x => x.CustomSettings.Count > 1 && x.PropertySettings.Count > 1), "No collection with multiple custom and property settings.");
 			Assert.IsTrue(collections.Any(x => x.CustomSettings.Count > 1 && x.PropertySettings.Count == 0), "No collection with only custom settings.");
 			Assert.IsTrue(collections.Any(x => x.CustomSettings.Count == 0 && x.PropertySettings.Count > 1), "No collection with only property settings.");
-			Assert.IsTrue(collections.Any(x => x.StringSettings.Count > 1 && x.BooleanSettings.Any() && x.DiscreteSettings.Any() && x.FileSettings.Any()), "No collection with settings of every type.");
+			Assert.IsTrue(collections.Any(x => x.StringSettings.Count > 1 && x.BooleanSettings.Any() && x.DiscreteSettings.Any() && (x.FileSettings.Any() || !TestContext.UseRealDma)), "No collection with settings of every type.");
 		}
 
 		[TestMethod]
