@@ -543,6 +543,38 @@
 		}
 
 		[TestMethod]
+		public void DeprecateResourceInUseByRecurringJob()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"{prefix}_Resource",
+			}.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var recurringJob = new RecurringJob { Name = $"{prefix}_RecurringJob", Start = DateTime.UtcNow.AddHours(1), Duration = TimeSpan.FromHours(1) };
+			recurringJob.Pattern.RepeatType = RepeatType.Daily;
+			recurringJob.Pattern.RepeatEvery = 1;
+			recurringJob.Pattern.EndDate = DateTime.UtcNow.AddDays(10);
+			recurringJob.NodeGraph.Add(new RecurringJobResourceNode(pool.Id, resource.Id));
+			recurringJob = objectCreator.CreateRecurringJob(recurringJob);
+			Assert.AreEqual(RecurringJobState.Active, recurringJob.State);
+
+			var ex = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Resources.Deprecate(resource.Id));
+			var inUseError = ex.TraceData.ErrorData.OfType<ResourceInUseByRecurringJobsError>().SingleOrDefault();
+			Assert.IsNotNull(inUseError);
+			CollectionAssert.AreEqual(new[] { recurringJob.Id }, inUseError.RecurringJobIds.ToArray());
+
+			resource = TestContext.Api.Resources.Read(resource.Id);
+			Assert.AreEqual(ResourceState.Complete, resource.State);
+		}
+
+		[TestMethod]
 		public void RenameResource()
 		{
 			var prefix = Guid.NewGuid();
