@@ -136,7 +136,13 @@ namespace RT_MediaOps.Plan.Properties.Querying
 
 			// Settings of every type, mixed with custom settings and added in another order than the one of PropertySettingCollection.PropertySettings.
 			collection1.Add(new DiscretePropertySetting(GlobalDiscreteProperty!) { Value = "Option_1" });
-			collection1.Add(new FilePropertySetting(GlobalFileProperty!));
+
+			// File content is stored through the attachment API, which the simulated connection doesn't support.
+			if (TestContextManager.SharedTestContext.UseRealDma)
+			{
+				collection1.Add(new FilePropertySetting(GlobalFileProperty!));
+			}
+
 			collection1.Add(new CustomPropertySetting($"Custom_1_{Prefix}") { Value = "Custom value 1" });
 			collection1.Add(new BooleanPropertySetting(GlobalBooleanProperty!) { Value = true });
 			collection1.Add(new StringPropertySetting(GlobalPropertyA!) { Value = "First" });
