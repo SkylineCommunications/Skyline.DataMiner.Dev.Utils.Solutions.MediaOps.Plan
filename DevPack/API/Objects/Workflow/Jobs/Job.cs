@@ -24,6 +24,8 @@
 		private PropertySettingsScope propertySettingsScope;
 		private JobRelationshipsContext jobRelationshipsContext;
 		private JobRelationshipsScope jobRelationshipsScope;
+		private WorkflowOrchestrationSettingsContext orchestrationSettingsContext;
+		private OrchestrationSettingsHolder<WorkflowOrchestrationSettings> orchestrationSettingsHolder;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Job"/> class.
@@ -87,9 +89,13 @@
 			Key = data.Key;
 		}
 
-		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
+		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance, ProfileParameterLookup parameters = null) : base(instance.ID.Id)
 		{
+			orchestrationSettingsContext = WorkflowOrchestrationSettingsContext.ForOwner(planApi, parameters, instance.JobExecution?.JobConfiguration, instance.Nodes);
+
 			ParseInstance(planApi, instance);
+
+			orchestrationSettingsContext.Attach(NodeGraph.Nodes);
 
 			propertiesContext = new PropertySettingsContext(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
 			foreach (var node in NodeGraph.Nodes)
@@ -103,15 +109,12 @@
 		}
 
 		/// <summary>
-		/// Parses the specified job instances, reading the orchestration settings of every job and node in a single batch.
+		/// Parses the specified job instances. The orchestration settings are not read: they are read lazily per job, while
+		/// the profile parameters they refer to are shared by all parsed jobs.
 		/// </summary>
 		/// <param name="planApi">The API used to read the referenced data.</param>
 		/// <param name="instances">The job instances to parse.</param>
 		/// <returns>The parsed jobs.</returns>
-		/// <remarks>
-		/// The orchestration settings of a job and of each of its nodes are separate DOM instances, so parsing a job one
-		/// instance at a time performs one read per node. Prefetching them keeps that to a single batched read.
-		/// </remarks>
 		internal static List<Job> Parse(MediaOpsPlanApi planApi, IEnumerable<StorageWorkflow.JobsInstance> instances)
 		{
 			if (planApi == null)
@@ -124,45 +127,23 @@
 				throw new ArgumentNullException(nameof(instances));
 			}
 
-			var toParse = instances.ToList();
-			if (toParse.Count == 0)
-			{
-				return new List<Job>();
-			}
-
-			using (planApi.DomHelpers.SlcWorkflowHelper.BeginConfigurationScope(CollectConfigurationIds(toParse)))
-			{
-				return toParse.Select(x => new Job(planApi, x)).ToList();
-			}
+			var parameters = new ProfileParameterLookup(planApi);
+			return instances.Select(x => new Job(planApi, x, parameters)).ToList();
 		}
 
-		private static List<Guid> CollectConfigurationIds(ICollection<StorageWorkflow.JobsInstance> instances)
+		/// <summary>
+		/// Reads the orchestration settings of the specified jobs and their nodes that were not read yet, using a single
+		/// call for all of them.
+		/// </summary>
+		/// <param name="jobs">The jobs.</param>
+		internal static void LoadOrchestrationSettings(IEnumerable<Job> jobs)
 		{
-			var ids = new HashSet<Guid>();
-
-			foreach (var instance in instances)
+			if (jobs == null)
 			{
-				var jobConfiguration = instance.JobExecution?.JobConfiguration;
-				if (jobConfiguration != null && jobConfiguration != Guid.Empty)
-				{
-					ids.Add(jobConfiguration.Value);
-				}
-
-				if (instance.Nodes == null)
-				{
-					continue;
-				}
-
-				foreach (var node in instance.Nodes)
-				{
-					if (node.NodeConfiguration != null && node.NodeConfiguration != Guid.Empty)
-					{
-						ids.Add(node.NodeConfiguration.Value);
-					}
-				}
+				throw new ArgumentNullException(nameof(jobs));
 			}
 
-			return ids.ToList();
+			WorkflowOrchestrationSettingsContext.LoadAll(jobs.Where(x => x != null).Select(x => x.orchestrationSettingsContext));
 		}
 
 		/// <summary>
@@ -329,8 +310,13 @@
 
 		/// <summary>
 		/// Gets the orchestration settings assigned to this job.
+		/// Orchestration settings are loaded lazily in a single batch together with the orchestration settings of all nodes.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; private set; }
+		public OrchestrationSettings OrchestrationSettings
+		{
+			get => orchestrationSettingsHolder.Value;
+			private set => orchestrationSettingsHolder = OrchestrationSettingsHolder<WorkflowOrchestrationSettings>.FromValue((WorkflowOrchestrationSettings)value);
+		}
 
 		/// <summary>
 		/// Gets the node graph containing all nodes and connections that define the job structure.
@@ -428,11 +414,14 @@
 
 		internal JobRelationshipsContext JobRelationshipsContext => jobRelationshipsContext;
 
-		// Property settings are stored outside the job instance, so they are not covered by the hash-based tracking.
-		internal override bool HasChanges => base.HasChanges || (!IsNew && HasPropertySettingChanges);
+		// Property and orchestration settings are stored outside the job instance, so they are not covered by the hash-based tracking.
+		internal override bool HasChanges => base.HasChanges || (!IsNew && (HasPropertySettingChanges || HasOrchestrationSettingChanges));
 
 		internal bool HasPropertySettingChanges => propertySettingsScope?.IsDirty == true
 			|| NodeGraph.Nodes.Any(x => x.PropertySettingsScope?.IsDirty == true);
+
+		internal bool HasOrchestrationSettingChanges => orchestrationSettingsHolder.HasChanges
+			|| NodeGraph.Nodes.Any(x => x.HasOrchestrationSettingChanges);
 
 		/// <summary>
 		/// Creates a duplicate of this job with a newly generated identifier. The duplicate is a brand new,
@@ -990,7 +979,7 @@
 				hash = (hash * 23) + PostRollEnd.GetHashCode();
 				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
 				hash = (hash * 23) + (JobTypeCategoryId != null ? JobTypeCategoryId.GetHashCode() : 0);
-				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+				hash = (hash * 23) + orchestrationSettingsHolder.GetOwnerHashCode();
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
 				hash = (hash * 23) + OrganizationId.GetHashCode();
@@ -1080,7 +1069,7 @@
 			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
 
-			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
+			updatedInstance.JobExecution.JobConfiguration = orchestrationSettingsHolder.Id;
 
 			updatedInstance.JobExecution.JobConfigurationStatus = EnumExtensions.TryMapEnum<ConfigurationState, StorageWorkflow.SlcWorkflowIds.Enums.Jobconfigurationstatus>(ConfigurationState, out var storedConfigurationState)
 				? storedConfigurationState
@@ -1217,22 +1206,7 @@
 				errors[error.ErrorCode] = new JobError(error.ErrorCode, error.ErrorMessage);
 			}
 
-			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
-			{
-				OrchestrationSettings = new WorkflowOrchestrationSettings();
-			}
-			else
-			{
-				var domConfiguration = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations([instance.JobExecution.JobConfiguration.Value]).FirstOrDefault();
-				if (domConfiguration != null)
-				{
-					OrchestrationSettings = new WorkflowOrchestrationSettings(planApi, domConfiguration);
-				}
-				else
-				{
-					OrchestrationSettings = new WorkflowOrchestrationSettings();
-				}
-			}
+			orchestrationSettingsHolder = orchestrationSettingsContext.CreateHolder(instance.JobExecution.JobConfiguration);
 
 			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships, instance.NodeGroups);
 		}

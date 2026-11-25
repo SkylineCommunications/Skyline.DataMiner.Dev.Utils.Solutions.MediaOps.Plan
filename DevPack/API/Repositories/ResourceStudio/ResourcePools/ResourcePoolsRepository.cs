@@ -212,7 +212,7 @@
 
 				act?.AddTag("ResourcePoolIds", String.Join(", ", result.SuccessfulIds));
 
-				return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+				return ResourcePool.Parse(PlanApi, result.SuccessfulItems);
 			});
 		}
 
@@ -243,7 +243,7 @@
 				act?.AddTag("Created or Updated Resource Pools", String.Join(", ", resourcePoolIds));
 				act?.AddTag("Created or Updated Resource Pools Count", resourcePoolIds.Count);
 
-				return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+				return ResourcePool.Parse(PlanApi, result.SuccessfulItems);
 			});
 		}
 
@@ -423,7 +423,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+			return ResourcePool.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public ResourcePool Deprecate(ResourcePool resourcePool)
@@ -539,7 +539,7 @@
 				act?.AddTag("Deprecated Resource Pools", String.Join(", ", result.SuccessfulIds));
 				act?.AddTag("Deprecated Resource Pools Count", result.SuccessfulIds.Count);
 
-				return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+				return ResourcePool.Parse(PlanApi, result.SuccessfulItems);
 			});
 		}
 
@@ -556,9 +556,13 @@
 				throw new ArgumentNullException(nameof(resourcePools));
 			}
 
-			var apiPoolsById = resourcePools.ToDictionary(x => x.Id);
+			// Enumerated once: a deferred sequence would hand out new pools on every enumeration, so the settings
+			// would be read in a batch for pools that are thrown away and then once per pool for the returned keys.
+			var pools = resourcePools.ToList();
 
-			var poolFilters = resourcePools
+			var apiPoolsById = pools.ToDictionary(x => x.Id);
+
+			var poolFilters = pools
 				.Select(x => DomInstanceExposers.FieldValues
 					.DomInstanceField(StorageResourceStudio.SlcResource_StudioIds.Sections.ResourcePoolLinks.LinkedResourcePool)
 					.Equal(x.Id))
@@ -568,9 +572,13 @@
 				.AND(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id));
 
 			var domPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter);
-			var parentApiPoolsById = domPools.Select(x => new ResourcePool(PlanApi, x)).ToDictionary(x => x.Id);
+			var parentApiPoolsById = ResourcePool.Parse(PlanApi, domPools).ToDictionary(x => x.Id);
 
-			var parentPoolsPerPool = resourcePools.ToDictionary(
+			// The pools are dictionary keys and callers typically collect the parents in sets, while pool equality covers
+			// the lazily read orchestration settings, so these are read in a single batch.
+			ResourcePool.LoadOrchestrationSettings(pools.Concat(parentApiPoolsById.Values));
+
+			var parentPoolsPerPool = pools.ToDictionary(
 				pool => pool,
 				pool =>
 					(IReadOnlyCollection<ResourcePool>)domPools
@@ -736,9 +744,12 @@
 				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<ResourcePool> Iterator()
 				{
+					// The profile parameters of the orchestration settings are shared by every resource pool of this read.
+					var parameters = new ProfileParameterLookup(PlanApi);
+
 					foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domFilter))
 					{
-						yield return new ResourcePool(PlanApi, domResourcePool);
+						yield return new ResourcePool(PlanApi, domResourcePool, parameters);
 					}
 				}
 
@@ -776,9 +787,12 @@
 
 			IEnumerable<ResourcePool> Iterator()
 			{
+				// The profile parameters of the orchestration settings are shared by every resource pool of this read.
+				var parameters = new ProfileParameterLookup(PlanApi);
+
 				foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domQuery))
 				{
-					yield return new ResourcePool(PlanApi, domResourcePool);
+					yield return new ResourcePool(PlanApi, domResourcePool, parameters);
 				}
 			}
 
@@ -888,7 +902,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<ResourcePool>(ResourcePool.Parse(PlanApi, page), pageNumber++, pageSize, hasNext);
 			}
 		}
 
@@ -903,7 +917,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<ResourcePool>(ResourcePool.Parse(PlanApi, page), pageNumber++, pageSize, hasNext);
 			}
 		}
 
@@ -1068,7 +1082,7 @@
 				}
 
 				act?.AddTag("ResourcePoolIds", String.Join(", ", result.SuccessfulIds));
-				return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+				return ResourcePool.Parse(PlanApi, result.SuccessfulItems);
 			});
 		}
 
