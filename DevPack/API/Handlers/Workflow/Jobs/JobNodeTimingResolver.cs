@@ -148,6 +148,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <remarks>
 		/// The method is idempotent: a node time is only written when it actually differs from the current value, so
 		/// re-applying an unchanged window produces no field-level diff (and therefore no spurious concurrency conflict).
+		/// The node removals recorded by the graph are consumed by every application: a running job restores the removed
+		/// nodes as ended history, any other state keeps them removed. They are therefore never replayed by a later save
+		/// of the same in-memory job.
 		/// </remarks>
 		/// <param name="state">The state of the job.</param>
 		/// <param name="requested">The requested (in-memory) timing window.</param>
@@ -177,6 +180,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					// The timings are frozen for these states; node timings are left untouched.
 					break;
 			}
+
+			nodeGraph.ClearRemovedNodes();
 		}
 
 		/// <summary>
@@ -237,6 +242,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				nodeGraph.RestoreSwappedOutNode(swappedOut);
 			}
+
+			// Rule 2.b: an existing node that was removed while the job is running is not deleted. It keeps its start, its
+			// end is truncated to the current time and it is restored into the graph as history. A node that already ended
+			// is restored unchanged, so the history of the job cannot be deleted.
+			foreach (var removed in nodeGraph.RemovedNodes)
+			{
+				if (removed.End > currentTime)
+				{
+					removed.End = currentTime;
+				}
+			}
+
+			nodeGraph.RestoreRemovedNodes();
 
 			foreach (var node in nodeGraph.Nodes)
 			{
