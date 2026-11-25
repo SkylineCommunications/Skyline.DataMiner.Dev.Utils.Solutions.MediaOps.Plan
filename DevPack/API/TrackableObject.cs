@@ -19,6 +19,9 @@
 	/// <seealso cref="Setting"/>
 	public abstract class TrackableObject
 	{
+		[ThreadStatic]
+		private static int trackingHashDepth;
+
 		private bool wasInitialized = false;
 		private int initialHashCode = -1;
 
@@ -30,6 +33,12 @@
 		private protected TrackableObject()
 		{
 		}
+
+		/// <summary>
+		/// Gets a value indicating whether the current thread is computing a hash for change tracking. Objects holding
+		/// lazily loaded data use this to avoid loading it just to detect changes.
+		/// </summary>
+		internal static bool IsComputingTrackingHash => trackingHashDepth > 0;
 
 		internal bool IsNew { get; set; }
 
@@ -47,7 +56,7 @@
 					throw new InvalidOperationException("Tracking for this object was never initialized");
 				}
 
-				return initialHashCode != GetHashCode();
+				return initialHashCode != ComputeTrackingHashCode();
 			}
 		}
 
@@ -63,8 +72,21 @@
 				throw new InvalidOperationException("Tracking was already initialized for this object");
 			}
 
-			initialHashCode = GetHashCode();
+			initialHashCode = ComputeTrackingHashCode();
 			wasInitialized = true;
+		}
+
+		private int ComputeTrackingHashCode()
+		{
+			trackingHashDepth++;
+			try
+			{
+				return GetHashCode();
+			}
+			finally
+			{
+				trackingHashDepth--;
+			}
 		}
 	}
 }
