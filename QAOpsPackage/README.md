@@ -1,6 +1,6 @@
 # QAOpsPackage
 
-This project builds a **DataMiner QAOps Test Package** (`.dmtest`) for `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan`. The fallback workflow builds the same project with `-p:DataMinerType=Package` to deploy the installer and Catalog prerequisites as a `.dmapp` before running the tests directly.
+This project builds a **DataMiner QAOps Test Package** (`.dmtest`) for `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan`. The legacy workflow builds the same project with `-p:DataMinerType=Package` to deploy the installer and Catalog prerequisites as a `.dmapp` before running the tests directly.
 
 ## What this package tests
 
@@ -44,7 +44,7 @@ Visual Studio references the Plan DevPack project directly, and the solution bui
 
 [`Plan-CICD.yml`](../.github/workflows/Plan-CICD.yml) runs validation, builds `MediaOps Plan.UnitTests.slnf` with MSBuild, and runs the complete simulated suite with VSTest. This unit build harvests test output into the runner's temporary directory to avoid Windows path-length limits.
 
-When `USE_QAOPS=true` and [integration is required](../README.md#ci-execution), the workflow restores the test project before building `QAOpsPackage.csproj` with a tag-derived or run-specific version. It revalidates the current PR head and target for approval-triggered runs, submits that exact `.dmtest` with `dataminer-qaops test-run-and-wait`, and uploads the QAOps results JSON. See the [integration variables and secrets](../README.md#integration-variables-and-secrets) for setup of both paths.
+When `USE_QAOPS=true` and [integration is required](../README.md#triggers-and-job-order), the workflow restores the test project before building `QAOpsPackage.csproj` with a tag-derived or run-specific version. It revalidates the current PR head and target for approval-triggered runs, submits that exact `.dmtest` with `dataminer-qaops test-run-and-wait`, and uploads the QAOps results JSON. See [QAOps configuration](../README.md#qaops-configuration) and [Legacy configuration](../README.md#legacy-configuration) for setup of both paths.
 
 ## What gets cleaned up after the run
 
