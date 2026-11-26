@@ -89,6 +89,10 @@
 				return;
 			}
 
+			// The validations below and the default equality used to split the recurring jobs touch the orchestration
+			// settings of every recurring job and node, so they are read up front in a single batch.
+			RecurringJob.LoadOrchestrationSettings(apiRecurringJobs);
+
 			var toCreate = apiRecurringJobs.Where(x => x.IsNew).ToList();
 			var toUpdate = apiRecurringJobs.Except(toCreate).ToList();
 
@@ -534,6 +538,8 @@
 			}
 
 			// The orchestration settings of the nodes are stored as separate DOM instances and must be removed as well.
+			RecurringJob.LoadOrchestrationSettings(apiRecurringJobs);
+
 			var orchestrationSettings = apiRecurringJobs
 				.SelectMany(x => new[] { x.OrchestrationSettings }.Concat(x.NodeGraph.Nodes.Select(node => node.OrchestrationSettings)))
 				.Where(x => x != null)

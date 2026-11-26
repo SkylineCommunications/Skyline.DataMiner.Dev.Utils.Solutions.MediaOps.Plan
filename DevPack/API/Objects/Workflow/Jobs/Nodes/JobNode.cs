@@ -42,6 +42,28 @@
 
 		internal int? CoreReservationNodeId { get; private set; }
 
+		/// <inheritdoc/>
+		public override bool Equals(object obj)
+		{
+			return obj is JobNode other
+				&& base.Equals(other)
+				&& Start == other.Start
+				&& End == other.End;
+		}
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				var hash = base.GetHashCode();
+				hash = (hash * 23) + Start.GetHashCode();
+				hash = (hash * 23) + End.GetHashCode();
+
+				return hash;
+			}
+		}
+
 		internal sealed override void ApplyChanges(StorageWorkflow.NodesSection section)
 		{
 			section.NodeStartTime = Start.UtcDateTime;

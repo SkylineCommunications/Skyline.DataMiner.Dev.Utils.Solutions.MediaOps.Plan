@@ -800,9 +800,12 @@
 				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<Job> Iterator()
 				{
+					// The profile parameters of the orchestration settings are shared by every job of this read.
+					var parameters = new ProfileParameterLookup(PlanApi);
+
 					foreach (var domJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetJobs(domFilter))
 					{
-						yield return new Job(PlanApi, domJob);
+						yield return new Job(PlanApi, domJob, parameters);
 					}
 				}
 
@@ -832,9 +835,12 @@
 
 			IEnumerable<Job> Iterator()
 			{
+				// The profile parameters of the orchestration settings are shared by every job of this read.
+				var parameters = new ProfileParameterLookup(PlanApi);
+
 				foreach (var domJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetJobs(domQuery))
 				{
-					yield return new Job(PlanApi, domJob);
+					yield return new Job(PlanApi, domJob, parameters);
 				}
 			}
 

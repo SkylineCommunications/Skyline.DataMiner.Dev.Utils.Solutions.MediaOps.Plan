@@ -13,9 +13,9 @@
 		{
 		}
 
-		internal ResourceStudioOrchestrationEvent(MediaOpsPlanApi planApi, StorageResourceStudio.OrchestrationEventsSection section)
+		internal ResourceStudioOrchestrationEvent(MediaOpsPlanApi planApi, StorageResourceStudio.OrchestrationEventsSection section, ProfileParameterLookup parameters)
 		{
-			ParseSection(planApi, section);
+			ParseSection(planApi, section, parameters);
 			InitTracking();
 		}
 
@@ -44,14 +44,14 @@
 			return updatedSection;
 		}
 
-		private void ParseSection(MediaOpsPlanApi planApi, StorageResourceStudio.OrchestrationEventsSection section)
+		private void ParseSection(MediaOpsPlanApi planApi, StorageResourceStudio.OrchestrationEventsSection section, ProfileParameterLookup parameters)
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
 			EventType = TranslateEventType(section.Name);
 			if (section.ScriptExecutionDetails != null)
 			{
-				ExecutionDetails = ScriptExecutionDetails.FromStorage(planApi, section.ScriptExecutionDetails);
+				ExecutionDetails = ScriptExecutionDetails.FromStorage(planApi, section.ScriptExecutionDetails, parameters);
 			}
 		}
 	}

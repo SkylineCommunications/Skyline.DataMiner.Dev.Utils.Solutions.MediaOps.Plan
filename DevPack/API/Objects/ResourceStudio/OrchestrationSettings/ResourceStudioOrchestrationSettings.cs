@@ -26,9 +26,14 @@
 		{
 		}
 
-		internal ResourceStudioOrchestrationSettings(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance) : base(instance.ID.Id)
+		internal ResourceStudioOrchestrationSettings(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance)
+			: this(planApi, instance, CreatePrefetchedLookup(planApi, instance))
 		{
-			ParseInstance(planApi, instance);
+		}
+
+		internal ResourceStudioOrchestrationSettings(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance, ProfileParameterLookup parameters) : base(instance.ID.Id)
+		{
+			ParseInstance(planApi, instance, parameters ?? CreatePrefetchedLookup(planApi, instance));
 			InitTracking();
 		}
 
@@ -322,15 +327,43 @@
 			return updatedInstance;
 		}
 
-		private void ParseInstance(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance)
+		/// <summary>
+		/// Returns the IDs of every profile parameter referenced by the specified configuration, including the ones in
+		/// the script execution details of its orchestration events.
+		/// </summary>
+		/// <param name="instance">The configuration instance.</param>
+		/// <returns>The referenced profile parameter IDs.</returns>
+		internal static IEnumerable<Guid> CollectProfileParameterIds(StorageResourceStudio.ConfigurationInstance instance)
+		{
+			if (instance == null)
+			{
+				return [];
+			}
+
+			var settingIds = instance.ProfileParameterValues?.Select(x => x.ProfileParameterId) ?? [];
+			var eventIds = instance.OrchestrationEvents?
+				.Where(x => x?.ScriptExecutionDetails?.ProfileParameterValues != null)
+				.SelectMany(x => x.ScriptExecutionDetails.ProfileParameterValues.Select(y => y.ProfileParameterId)) ?? [];
+
+			return settingIds.Concat(eventIds);
+		}
+
+		private static ProfileParameterLookup CreatePrefetchedLookup(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance)
+		{
+			var lookup = new ProfileParameterLookup(planApi);
+			lookup.Prefetch(CollectProfileParameterIds(instance));
+			return lookup;
+		}
+
+		private void ParseInstance(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance, ProfileParameterLookup parameters)
 		{
 			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
-			ParseParameterValues(planApi, instance.ProfileParameterValues);
-			ParseOrchestrationEvents(planApi, instance.OrchestrationEvents);
+			ParseParameterValues(planApi, instance.ProfileParameterValues, parameters);
+			ParseOrchestrationEvents(planApi, instance.OrchestrationEvents, parameters);
 		}
 
-		private void ParseOrchestrationEvents(MediaOpsPlanApi planApi, IList<StorageResourceStudio.OrchestrationEventsSection> orchestrationEvents)
+		private void ParseOrchestrationEvents(MediaOpsPlanApi planApi, IList<StorageResourceStudio.OrchestrationEventsSection> orchestrationEvents, ProfileParameterLookup parameters)
 		{
 			if (orchestrationEvents == null || orchestrationEvents.Count == 0)
 			{
@@ -339,19 +372,18 @@
 
 			foreach (var orchestrationEvent in orchestrationEvents)
 			{
-				this.orchestrationEvents.Add(new ResourceStudioOrchestrationEvent(planApi, orchestrationEvent));
+				this.orchestrationEvents.Add(new ResourceStudioOrchestrationEvent(planApi, orchestrationEvent, parameters));
 			}
 		}
 
-		private void ParseParameterValues(MediaOpsPlanApi planApi, IList<StorageResourceStudio.ProfileParameterValuesSection> parameterValues)
+		private void ParseParameterValues(MediaOpsPlanApi planApi, IList<StorageResourceStudio.ProfileParameterValuesSection> parameterValues, ProfileParameterLookup parameters)
 		{
 			if (parameterValues == null || parameterValues.Count == 0)
 			{
 				return;
 			}
 
-			var parameterIds = parameterValues.Select(pv => pv.ProfileParameterId).Distinct();
-			var parametersById = planApi.CoreHelpers.ProfileProvider.GetParametersById(parameterIds).ToDictionary(x => x.ID);
+			var parametersById = parameters.GetParametersById(parameterValues.Select(pv => pv.ProfileParameterId));
 
 			foreach (var section in parameterValues)
 			{

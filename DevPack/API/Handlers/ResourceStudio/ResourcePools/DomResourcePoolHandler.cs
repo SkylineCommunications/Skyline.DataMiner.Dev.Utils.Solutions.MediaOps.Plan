@@ -81,6 +81,10 @@
 				return;
 			}
 
+			// Saving touches the orchestration settings of every pool, also through the default equality used to split
+			// the pools, so they are read up front in a single batch.
+			ResourcePool.LoadOrchestrationSettings(apiResourcePools);
+
 			var toCreate = apiResourcePools.Where(x => x.IsNew).ToList();
 			var toUpdate = apiResourcePools.Except(toCreate).ToList();
 
@@ -628,6 +632,8 @@
 				throw new ArgumentException($"Not all provided resource pools are valid", nameof(resourcePools));
 			}
 
+			ResourcePool.LoadOrchestrationSettings(resourcePools);
+
 			DomResourceStudioOrchestrationSettingsHandler.TryDelete(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out _);
 		}
 
@@ -731,7 +737,9 @@
 
 			var resourcesToUpdate = resourcesPerPoolCollection.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>().ToList();
 
-			if (DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToUpdate, out var result, allowDeprecatedUpdates: true))
+			// Only pools in Draft or Deprecated state are deleted: jobs and workflows cannot use a Draft pool, and a pool
+			// can only be deprecated when no job or workflow uses it, so the pool usage of the resources is not validated.
+			if (DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToUpdate, out var result, allowDeprecatedUpdates: true, validatePoolAssignmentUsage: false))
 			{
 				return;
 			}

@@ -75,7 +75,13 @@
 				DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.OrchestrationEvents.ScriptInput).Contains(x.ToString())))
 				.ToArray()));
 
-			return planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations(configurationFilter).Select(x => new ResourceStudioOrchestrationSettings(planApi, x));
+			var configurations = planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations(configurationFilter).ToList();
+
+			// The profile parameters of all configurations are read in a single call instead of once per configuration.
+			var parameters = new ProfileParameterLookup(planApi);
+			parameters.Prefetch(configurations.SelectMany(ResourceStudioOrchestrationSettings.CollectProfileParameterIds));
+
+			return configurations.Select(x => new ResourceStudioOrchestrationSettings(planApi, x, parameters)).ToList();
 		}
 
 		private Dictionary<Guid, ICollection<Guid>> GetResourcePoolsPerOrchestrationSettings(HashSet<Guid> orchestrationSettingsIds)
