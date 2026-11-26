@@ -3,9 +3,6 @@ name: Plan Regression
 on:
   workflow_call:
     inputs:
-      source-sha:
-        required: true
-        type: string
       package-version:
         required: true
         type: string
@@ -41,7 +38,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.source-sha }}
           persist-credentials: false
 
       - name: Validate legacy environment
@@ -114,8 +110,6 @@ jobs:
       - name: Verify approval still covers the current PR head and target
         if: github.event_name == 'pull_request_review'
         uses: actions/github-script@v8
-        env:
-          SOURCE_SHA: ${{ inputs.source-sha }}
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -126,7 +120,7 @@ jobs:
             });
             if (pr.state !== 'open' || pr.draft || pr.base.ref !== context.payload.pull_request.base.ref ||
                 pr.head.repo.full_name !== `${owner}/${repo}` ||
-                pr.head.sha !== process.env.SOURCE_SHA || review.state !== 'APPROVED' ||
+                pr.head.sha !== context.payload.pull_request.head.sha || review.state !== 'APPROVED' ||
                 review.commit_id !== pr.head.sha) {
               throw new Error('PR approval is no longer valid for the current head or target. Approve the latest commit to run regression.');
             }
@@ -165,7 +159,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.source-sha }}
           persist-credentials: false
 
       - name: Setup .NET

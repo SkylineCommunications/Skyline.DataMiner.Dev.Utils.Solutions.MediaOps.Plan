@@ -48,7 +48,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -192,8 +191,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Install dotnet-consolidate
         run: dotnet tool install -g dotnet-consolidate
@@ -231,8 +228,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -268,8 +263,6 @@ jobs:
       - name: Verify approval still covers the current PR head and target
         if: github.event_name == 'pull_request_review'
         uses: actions/github-script@v7
-        env:
-          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -280,7 +273,7 @@ jobs:
             });
             if (pr.state !== 'open' || pr.draft || pr.base.ref !== context.payload.pull_request.base.ref ||
                 pr.head.repo.full_name !== `${owner}/${repo}` ||
-                pr.head.sha !== process.env.SOURCE_SHA || review.state !== 'APPROVED' ||
+                pr.head.sha !== context.payload.pull_request.head.sha || review.state !== 'APPROVED' ||
                 review.commit_id !== pr.head.sha) {
               throw new Error('PR approval is no longer valid for the current head or target. Approve the latest commit to run regression.');
             }
@@ -374,7 +367,6 @@ jobs:
       queue: max
     uses: ./.github/workflows/Plan-Regression.yml
     with:
-      source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       package-version: ${{ github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name || format('0.1.{0}', github.run_number) }}
       target-environment: ${{ needs.tag_branch_validation.outputs.regression_environment }}
     secrets: inherit
@@ -398,12 +390,11 @@ jobs:
           QAOPS_RESULT: ${{ needs.qaops_integration_tests.result }}
           LEGACY_RESULT: ${{ needs.legacy_integration_tests.result }}
           TARGET_ENV: ${{ needs.tag_branch_validation.outputs.regression_environment }}
-          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PACKAGE_VERSION: ${{ github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name || format('0.1.{0}', github.run_number) }}
         run: |
           {
             echo '### Integration Tests'
-            printf '%s\n' "- Backend: $BACKEND" "- Target: $TARGET_ENV" "- Source SHA: $SOURCE_SHA" \
+            printf '%s\n' "- Backend: $BACKEND" "- Target: $TARGET_ENV" "- Source SHA: $GITHUB_SHA" \
               "- Package version: $PACKAGE_VERSION" "- QAOps result: $QAOPS_RESULT" "- Legacy result: $LEGACY_RESULT"
           } >> "$GITHUB_STEP_SUMMARY"
 
