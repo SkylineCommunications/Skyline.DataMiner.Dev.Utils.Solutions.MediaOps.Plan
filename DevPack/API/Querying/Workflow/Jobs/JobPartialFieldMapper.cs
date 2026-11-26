@@ -33,50 +33,42 @@
 
 		private static readonly Dictionary<string, PartialField> Fields = new Dictionary<string, PartialField>
 		{
-			[JobExposers.Id.fieldName] = PartialField.Single(x => x.Id.Id),
+			[JobExposers.Id.fieldName] = PartialField.Scalar(x => x.JobId),
 			[JobExposers.Name.fieldName] = PartialField.ForString(JobInfo.JobName),
 			[JobExposers.Key.fieldName] = PartialField.ForString(JobInfo.JobID),
 			[JobExposers.Description.fieldName] = PartialField.ForString(JobInfo.JobDescription),
 			[JobExposers.Notes.fieldName] = PartialField.ForString(JobInfo.JobNotes),
 			[JobExposers.JobTypeCategoryId.fieldName] = PartialField.ForString(JobInfo.JobSource),
-			[JobExposers.Start.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.JobStart), JobInfo.JobStart),
-			[JobExposers.End.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.JobEnd), JobInfo.JobEnd),
-			[JobExposers.PreRollStart.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.Preroll) ?? ReadDate(x, JobInfo.JobStart), JobInfo.Preroll, JobInfo.JobStart),
-			[JobExposers.PostRollEnd.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.Postroll) ?? ReadDate(x, JobInfo.JobEnd), JobInfo.Postroll, JobInfo.JobEnd),
+			[JobExposers.Start.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.JobStart) ?? default, JobInfo.JobStart),
+			[JobExposers.End.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.JobEnd) ?? default, JobInfo.JobEnd),
+			[JobExposers.PreRollStart.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.Preroll) ?? ReadDate(x, JobInfo.JobStart) ?? default, JobInfo.Preroll, JobInfo.JobStart),
+			[JobExposers.PostRollEnd.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.Postroll) ?? ReadDate(x, JobInfo.JobEnd) ?? default, JobInfo.Postroll, JobInfo.JobEnd),
 			[JobExposers.Duration.fieldName] = PartialField.Single(ReadDuration, JobInfo.JobStart, JobInfo.JobEnd),
 			[JobExposers.RecurringJobId.fieldName] = PartialField.Single(ReadRecurringJobId, JobInfo.JobSeriesID),
 			[JobExposers.ActionRequired.fieldName] = PartialField.Single(x => x.TryGetValue<bool>(JobInfo.ActionNeeded, out var value) && value, JobInfo.ActionNeeded),
 			[JobExposers.Priority.fieldName] = PartialField.Single(ReadPriority, JobInfo.JobPriority),
-			[JobExposers.State.fieldName] = new PartialField(x => ToValues(ReadState(x.PartialObject))) { SelectsStatus = true },
+			[JobExposers.State.fieldName] = PartialField.Scalar(x => ReadState(x.PartialObject), selectsStatus: true),
 			[JobExposers.ConfigurationState.fieldName] = PartialField.Single(ReadConfigurationState, SlcWorkflowIds.Sections.JobExecution.JobConfigurationStatus),
 			[JobExposers.OrganizationId.fieldName] = PartialField.Single(x => ReadGuid(x, SlcWorkflowIds.Sections.CostingAndBilling.Organization), SlcWorkflowIds.Sections.CostingAndBilling.Organization),
 			[JobExposers.OwnerId.fieldName] = PartialField.Single(x => ReadGuid(x, SlcWorkflowIds.Sections.CostingAndBilling.JobOwner), SlcWorkflowIds.Sections.CostingAndBilling.JobOwner),
 
-			[JobExposers.HasError.fieldName] = new PartialField(x => ToValues(x.GetErrors(includeMessages: false).Count > 0), Errors.ErrorCode),
-			[JobExposers.Errors.Code.fieldName] = new PartialField(x => x.GetErrors(includeMessages: false).Select(e => (object)e.Key), Errors.ErrorCode),
-			[JobExposers.Errors.Message.fieldName] = new PartialField(x => x.GetErrors(includeMessages: true).Select(e => e.Value).Where(m => m != null), Errors.ErrorCode, Errors.ErrorMessage)
-			{
-				CanCombineSections = x => x.CanCombineErrorMessages(),
-			},
-			[JobExposers.Resources.fieldName] = new PartialField(x => x.GetResourceIds().Cast<object>(), Nodes.NodeType, Nodes.NodeReferenceID)
-			{
-				CanCombineSections = x => x.CanCombineNodeReferences(),
-			},
-			[JobExposers.ResourcePools.fieldName] = new PartialField(x => x.GetResourcePoolIds().Cast<object>(), Nodes.NodeType, Nodes.NodeReferenceID, Nodes.NodeParentReferenceID)
-			{
-				CanCombineSections = x => x.CanCombineNodeParentReferences(),
-			},
-			[JobExposers.Nodes.ConfigurationState.fieldName] = new PartialField(x => x.GetNodeConfigurationStates().Cast<object>(), Nodes.NodeType, Nodes.NodeConfigurationStatus)
-			{
-				CanCombineSections = x => x.CanCombineNodeConfigurationStates(),
-			},
+			[JobExposers.HasError.fieldName] = PartialField.Scalar(x => x.GetErrors(includeMessages: false).Count > 0, false, Errors.ErrorCode),
+			[JobExposers.Errors.CodeCollection.fieldName] = PartialField.Collection(x => x.GetErrors(includeMessages: false).Select(e => e.Key), Errors.ErrorCode),
+			[JobExposers.Errors.MessageCollection.fieldName] = PartialField.Collection(x => x.GetErrors(includeMessages: true).Select(e => e.Value).Where(m => m != null), Errors.ErrorCode, Errors.ErrorMessage)
+				.WithCanCombineSections(x => x.CanCombineErrorMessages()),
+			[JobExposers.ResourcesCollection.fieldName] = PartialField.Collection(x => x.GetResourceIds(), Nodes.NodeType, Nodes.NodeReferenceID)
+				.WithCanCombineSections(x => x.CanCombineNodeReferences()),
+			[JobExposers.ResourcePoolsCollection.fieldName] = PartialField.Collection(x => x.GetResourcePoolIds(), Nodes.NodeType, Nodes.NodeReferenceID, Nodes.NodeParentReferenceID)
+				.WithCanCombineSections(x => x.CanCombineNodeParentReferences()),
+			[JobExposers.Nodes.ConfigurationStateCollection.fieldName] = PartialField.Collection(x => x.GetNodeConfigurationStates(), Nodes.NodeType, Nodes.NodeConfigurationStatus)
+				.WithCanCombineSections(x => x.CanCombineNodeConfigurationStates()),
 
-			[JobExposers.Capabilities.CapabilityId.fieldName] = PartialField.Orchestration(x => x.CapabilityIds.Cast<object>()),
-			[JobExposers.Capabilities.Discretes.fieldName] = PartialField.Orchestration(x => x.CapabilityDiscretes),
-			[JobExposers.Capacities.CapacityId.fieldName] = PartialField.Orchestration(x => x.CapacityIds.Cast<object>()),
-			[JobExposers.Configurations.ConfigurationId.fieldName] = PartialField.Orchestration(x => x.ConfigurationIds.Cast<object>()),
+			[JobExposers.Capabilities.CapabilityIdCollection.fieldName] = PartialField.Orchestration(x => x.CapabilityIds),
+			[JobExposers.Capabilities.DiscretesCollection.fieldName] = PartialField.Orchestration(x => x.CapabilityDiscretes),
+			[JobExposers.Capacities.CapacityIdCollection.fieldName] = PartialField.Orchestration(x => x.CapacityIds),
+			[JobExposers.Configurations.ConfigurationIdCollection.fieldName] = PartialField.Orchestration(x => x.ConfigurationIds),
 
-			[JobExposers.Properties.PropertyId.fieldName] = new PartialField(x => x.PropertyIds.Cast<object>()) { RequiresProperties = true },
+			[JobExposers.Properties.PropertyIdCollection.fieldName] = PartialField.Properties(x => x.PropertyIds),
 		};
 
 		/// <summary>
@@ -126,7 +118,7 @@
 		/// <param name="domPartialObjects">The partial job DOM instances, read with <see cref="CreateSelectedFields"/>.</param>
 		/// <param name="fields">The fields to return.</param>
 		/// <exception cref="NotSupportedException">Thrown when one of the fields can't be read partially.</exception>
-		public static IReadOnlyList<Skyline.DataMiner.SDM.PartialObject<Job>> CreatePartialJobs(MediaOpsPlanApi planApi, IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
+		public static IReadOnlyList<PartialObject<Job>> CreatePartialJobs(MediaOpsPlanApi planApi, IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
 		{
 			if (domPartialObjects == null)
 			{
@@ -143,7 +135,7 @@
 
 			if (contexts.Count == 0)
 			{
-				return Array.Empty<Skyline.DataMiner.SDM.PartialObject<Job>>();
+				return Array.Empty<PartialObject<Job>>();
 			}
 
 			LoadFullInstancesWhereNeeded(planApi, contexts, selected.Select(x => x.Field).ToList());
@@ -159,9 +151,16 @@
 			}
 
 			return contexts
-				.Select(context => new Skyline.DataMiner.SDM.PartialObject<Job>(
-					context.JobId,
-					selected.Select(x => new KeyValuePair<FieldExposer, IEnumerable<object>>(x.Exposer, x.Field.Read(context).ToList()))))
+				.Select(context =>
+				{
+					var builder = PartialObject<Job>.CreateBuilder();
+					foreach (var (exposer, field) in selected)
+					{
+						field.Include(builder, exposer, context);
+					}
+
+					return builder.Build();
+				})
 				.ToList();
 		}
 
@@ -170,7 +169,7 @@
 			return CreateSelectedFields(fields);
 		}
 
-		IReadOnlyList<Skyline.DataMiner.SDM.PartialObject<Job>> IDomPartialFieldMapper<Job>.CreatePartialObjects(MediaOpsPlanApi planApi, IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
+		IReadOnlyList<PartialObject<Job>> IDomPartialFieldMapper<Job>.CreatePartialObjects(MediaOpsPlanApi planApi, IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
 		{
 			return CreatePartialJobs(planApi, domPartialObjects, fields);
 		}
@@ -208,7 +207,8 @@
 
 		private static IEnumerable<(FieldExposer Exposer, PartialField Field)> GetFields(IEnumerable<FieldExposer> fields)
 		{
-			var seen = new HashSet<FieldExposer>(FieldExposerComparer.Instance);
+			// Partial objects look up values by exposer instance, so the instances themselves are de-duplicated.
+			var seen = new HashSet<FieldExposer>();
 
 			foreach (var exposer in fields)
 			{
@@ -217,7 +217,7 @@
 					continue;
 				}
 
-				if (exposer.FilterType != typeof(Job) || !Fields.TryGetValue(exposer.fieldName, out var field))
+				if (exposer.FilterType != typeof(Job) || !Fields.TryGetValue(exposer.fieldName, out var field) || !field.ExposerType.IsInstanceOfType(exposer))
 				{
 					throw new NotSupportedException($"Field '{exposer.fieldName}' can't be read partially. Supported fields: {String.Join(", ", Fields.Keys)}.");
 				}
@@ -226,17 +226,12 @@
 			}
 		}
 
-		private static IEnumerable<object> ToValues(object value)
-		{
-			return value == null ? Enumerable.Empty<object>() : new[] { value };
-		}
-
-		private static object ReadDuration(DomPartialObject partialObject)
+		private static TimeSpan ReadDuration(DomPartialObject partialObject)
 		{
 			var start = ReadDate(partialObject, JobInfo.JobStart);
 			var end = ReadDate(partialObject, JobInfo.JobEnd);
 
-			return start.HasValue && end.HasValue ? (object)(end.Value - start.Value) : null;
+			return start.HasValue && end.HasValue ? end.Value - start.Value : default;
 		}
 
 		private static DateTimeOffset? ReadDate(DomPartialObject partialObject, FieldDescriptorID descriptor)
@@ -249,34 +244,34 @@
 			return partialObject.TryGetValue<Guid>(descriptor, out var value) ? value : Guid.Empty;
 		}
 
-		private static object ReadString(DomPartialObject partialObject, FieldDescriptorID descriptor)
+		private static string ReadString(DomPartialObject partialObject, FieldDescriptorID descriptor)
 		{
 			return partialObject.TryGetValue<string>(descriptor, out var value) ? value : null;
 		}
 
-		private static object ReadRecurringJobId(DomPartialObject partialObject)
+		private static Guid ReadRecurringJobId(DomPartialObject partialObject)
 		{
-			return Guid.TryParse(ReadString(partialObject, JobInfo.JobSeriesID) as string, out var recurringJobId) ? recurringJobId : Guid.Empty;
+			return Guid.TryParse(ReadString(partialObject, JobInfo.JobSeriesID), out var recurringJobId) ? recurringJobId : Guid.Empty;
 		}
 
-		private static object ReadPriority(DomPartialObject partialObject)
+		private static JobPriority ReadPriority(DomPartialObject partialObject)
 		{
 			return partialObject.TryGetValue<int>(JobInfo.JobPriority, out var value)
 				? EnumExtensions.MapEnum<SlcWorkflowIds.Enums.Jobpriority, JobPriority>((SlcWorkflowIds.Enums.Jobpriority)value)
 				: JobPriority.Normal;
 		}
 
-		private static object ReadState(DomPartialObject partialObject)
+		private static JobState ReadState(DomPartialObject partialObject)
 		{
 			if (!partialObject.TryGetValue(DomInstanceExposers.StatusId, out var statusId) || String.IsNullOrEmpty(statusId))
 			{
-				return null;
+				return default;
 			}
 
 			return EnumExtensions.MapEnum<SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum, JobState>(SlcWorkflowIds.Behaviors.Job_Behavior.Statuses.ToEnum(statusId));
 		}
 
-		private static object ReadConfigurationState(DomPartialObject partialObject)
+		private static ConfigurationState ReadConfigurationState(DomPartialObject partialObject)
 		{
 			return partialObject.TryGetValue<int>(SlcWorkflowIds.Sections.JobExecution.JobConfigurationStatus, out var value)
 				? EnumExtensions.MapEnum<SlcWorkflowIds.Enums.Jobconfigurationstatus, ConfigurationState>((SlcWorkflowIds.Enums.Jobconfigurationstatus)value)
@@ -285,31 +280,48 @@
 
 		private sealed class PartialField
 		{
-			public PartialField(Func<JobPartialReadContext, IEnumerable<object>> read, params FieldDescriptorID[] descriptors)
+			private readonly Action<PartialObject<Job>.Builder, FieldExposer, JobPartialReadContext> include;
+
+			private PartialField(Type exposerType, Action<PartialObject<Job>.Builder, FieldExposer, JobPartialReadContext> include, FieldDescriptorID[] descriptors)
 			{
-				Read = read;
+				ExposerType = exposerType;
+				this.include = include;
 				Descriptors = descriptors;
 			}
 
-			public Func<JobPartialReadContext, IEnumerable<object>> Read { get; }
+			/// <summary>
+			/// Gets the type the selected exposer must have, so the value can be included with the exposer's field type.
+			/// </summary>
+			public Type ExposerType { get; }
 
 			public IReadOnlyCollection<FieldDescriptorID> Descriptors { get; }
 
-			public bool SelectsStatus { get; set; }
+			public bool SelectsStatus { get; private set; }
 
-			public bool RequiresOrchestration { get; set; }
+			public bool RequiresOrchestration { get; private set; }
 
-			public bool RequiresProperties { get; set; }
+			public bool RequiresProperties { get; private set; }
 
 			/// <summary>
-			/// Gets or sets a check whether the values of the sections that occur multiple times can be combined per section.
+			/// Gets a check whether the values of the sections that occur multiple times can be combined per section.
 			/// When it fails for a job, the field is read from the full job DOM instance.
 			/// </summary>
-			public Func<JobPartialReadContext, bool> CanCombineSections { get; set; }
+			public Func<JobPartialReadContext, bool> CanCombineSections { get; private set; }
 
-			public static PartialField Single(Func<DomPartialObject, object> read, params FieldDescriptorID[] descriptors)
+			public static PartialField Scalar<TField>(Func<JobPartialReadContext, TField> read, bool selectsStatus = false, params FieldDescriptorID[] descriptors)
 			{
-				return new PartialField(x => ToValues(read(x.PartialObject)), descriptors);
+				return new PartialField(
+					typeof(Exposer<Job, TField>),
+					(builder, exposer, context) => builder.Include((Exposer<Job, TField>)exposer, read(context)),
+					descriptors)
+				{
+					SelectsStatus = selectsStatus,
+				};
+			}
+
+			public static PartialField Single<TField>(Func<DomPartialObject, TField> read, params FieldDescriptorID[] descriptors)
+			{
+				return Scalar(x => read(x.PartialObject), descriptors: descriptors);
 			}
 
 			public static PartialField ForString(FieldDescriptorID descriptor)
@@ -317,9 +329,37 @@
 				return Single(x => ReadString(x, descriptor), descriptor);
 			}
 
-			public static PartialField Orchestration(Func<JobPartialReadContext.OrchestrationValues, IEnumerable<object>> read)
+			public static PartialField Collection<TField>(Func<JobPartialReadContext, IEnumerable<TField>> read, params FieldDescriptorID[] descriptors)
 			{
-				return new PartialField(x => read(x.Orchestration), SlcWorkflowIds.Sections.JobExecution.JobConfiguration) { RequiresOrchestration = true };
+				return new PartialField(
+					typeof(Exposer<Job, IEnumerable<TField>>),
+					(builder, exposer, context) => builder.Include((Exposer<Job, IEnumerable<TField>>)exposer, read(context).ToList()),
+					descriptors);
+			}
+
+			public static PartialField Orchestration<TField>(Func<JobPartialReadContext.OrchestrationValues, IEnumerable<TField>> read)
+			{
+				var field = Collection(x => read(x.Orchestration), SlcWorkflowIds.Sections.JobExecution.JobConfiguration);
+				field.RequiresOrchestration = true;
+				return field;
+			}
+
+			public static PartialField Properties<TField>(Func<JobPartialReadContext, IEnumerable<TField>> read)
+			{
+				var field = Collection(read);
+				field.RequiresProperties = true;
+				return field;
+			}
+
+			public PartialField WithCanCombineSections(Func<JobPartialReadContext, bool> canCombineSections)
+			{
+				CanCombineSections = canCombineSections;
+				return this;
+			}
+
+			public void Include(PartialObject<Job>.Builder builder, FieldExposer exposer, JobPartialReadContext context)
+			{
+				include(builder, exposer, context);
 			}
 		}
 	}

@@ -42,34 +42,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying
 			this.activityName = activityName ?? throw new ArgumentNullException(nameof(activityName));
 		}
 
-		public IEnumerable<Skyline.DataMiner.SDM.PartialObject<T>> ReadPartial(IPartialFilterElement<T> partialFilter)
+		public IEnumerable<PartialObject<T>> ReadPartial(IPartialQuery<T> partialQuery)
 		{
-			return Read(ToQuery(partialFilter), partialFilter.Fields, nameof(partialFilter));
+			var (query, fields) = Deconstruct(partialQuery);
+
+			return Read(query, fields);
 		}
 
-		public IEnumerable<Skyline.DataMiner.SDM.PartialObject<T>> ReadPartial(IPartialQuery<T> partialQuery)
+		public IEnumerable<IPagedResult<PartialObject<T>>> ReadPartialPaged(IPartialQuery<T> partialQuery, int pageSize)
 		{
-			if (partialQuery == null)
-			{
-				throw new ArgumentNullException(nameof(partialQuery));
-			}
+			var (query, fields) = Deconstruct(partialQuery);
 
-			return Read(partialQuery, partialQuery.Fields, nameof(partialQuery));
-		}
-
-		public IEnumerable<IPagedResult<Skyline.DataMiner.SDM.PartialObject<T>>> ReadPartialPaged(IPartialFilterElement<T> partialFilter, int pageSize)
-		{
-			return ReadPaged(ToQuery(partialFilter), partialFilter.Fields, pageSize, nameof(partialFilter));
-		}
-
-		public IEnumerable<IPagedResult<Skyline.DataMiner.SDM.PartialObject<T>>> ReadPartialPaged(IPartialQuery<T> partialQuery, int pageSize)
-		{
-			if (partialQuery == null)
-			{
-				throw new ArgumentNullException(nameof(partialQuery));
-			}
-
-			return ReadPaged(partialQuery, partialQuery.Fields, pageSize, nameof(partialQuery));
+			return ReadPaged(query, fields, pageSize);
 		}
 
 		internal static IEnumerable<List<TItem>> Batch<TItem>(IEnumerable<TItem> source, int size)
@@ -91,28 +75,35 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying
 			}
 		}
 
-		private static IQuery<T> ToQuery(IPartialFilterElement<T> partialFilter)
+		private static (IQuery<T> Query, IReadOnlyCollection<FieldExposer> Fields) Deconstruct(IPartialQuery<T> partialQuery)
 		{
-			if (partialFilter == null)
+			if (partialQuery == null)
 			{
-				throw new ArgumentNullException(nameof(partialFilter));
+				throw new ArgumentNullException(nameof(partialQuery));
 			}
 
-			if (partialFilter.Filter == null)
+			if (partialQuery.Query?.Filter == null)
 			{
-				throw new ArgumentException("The filter can't be null.", nameof(partialFilter));
+				throw new ArgumentException("The query and its filter can't be null.", nameof(partialQuery));
 			}
 
-			return partialFilter.Filter.ToQuery();
+			var fields = partialQuery.Fields?.Where(x => x != null).Select(x => x.Exposer).ToList();
+			if (fields == null || fields.Count == 0)
+			{
+				throw new ArgumentException("At least one field must be selected.", nameof(partialQuery));
+			}
+
+			return (partialQuery.Query, fields);
 		}
 
-		private IEnumerable<Skyline.DataMiner.SDM.PartialObject<T>> Read(IQuery<T> query, IReadOnlyCollection<FieldExposer> fields, string paramName)
+		private IEnumerable<PartialObject<T>> Read(IQuery<T> query, IReadOnlyCollection<FieldExposer> fields)
 		{
-			var selectedFields = CreateSelectedFields(fields, paramName);
+			// Validates the fields before anything is read, so an unsupported field fails immediately instead of on enumeration.
+			var selectedFields = fieldMapper.CreateSelectedFields(fields);
 
 			if (query.Filter.isEmpty())
 			{
-				return Enumerable.Empty<Skyline.DataMiner.SDM.PartialObject<T>>();
+				return Enumerable.Empty<PartialObject<T>>();
 			}
 
 			return ActivityHelper.Track(activityName, "ReadPartial", act =>
@@ -121,7 +112,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying
 
 				var domQuery = TranslateQuery(query);
 
-				IEnumerable<Skyline.DataMiner.SDM.PartialObject<T>> Iterator()
+				IEnumerable<PartialObject<T>> Iterator()
 				{
 					var domPartialObjects = InstanceFactory.ReadPartialInstances(getDomHelper(), domQuery, selectedFields);
 
@@ -138,24 +129,24 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying
 			});
 		}
 
-		private IEnumerable<IPagedResult<Skyline.DataMiner.SDM.PartialObject<T>>> ReadPaged(IQuery<T> query, IReadOnlyCollection<FieldExposer> fields, int pageSize, string paramName)
+		private IEnumerable<IPagedResult<PartialObject<T>>> ReadPaged(IQuery<T> query, IReadOnlyCollection<FieldExposer> fields, int pageSize)
 		{
 			if (pageSize <= 0)
 			{
 				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
 			}
 
-			var selectedFields = CreateSelectedFields(fields, paramName);
+			var selectedFields = fieldMapper.CreateSelectedFields(fields);
 
 			if (query.Filter.isEmpty())
 			{
-				return Enumerable.Empty<IPagedResult<Skyline.DataMiner.SDM.PartialObject<T>>>();
+				return Enumerable.Empty<IPagedResult<PartialObject<T>>>();
 			}
 
 			return ReadPagedIterator(TranslateQuery(query), selectedFields, fields, pageSize);
 		}
 
-		private IEnumerable<IPagedResult<Skyline.DataMiner.SDM.PartialObject<T>>> ReadPagedIterator(IQuery<DomInstance> domQuery, SelectedFields<DomInstance> selectedFields, IReadOnlyCollection<FieldExposer> fields, int pageSize)
+		private IEnumerable<IPagedResult<PartialObject<T>>> ReadPagedIterator(IQuery<DomInstance> domQuery, SelectedFields<DomInstance> selectedFields, IReadOnlyCollection<FieldExposer> fields, int pageSize)
 		{
 			var pageNumber = 0;
 			var pages = InstanceFactory.ReadPartialInstancesPaged(getDomHelper(), domQuery, selectedFields, pageSize);
@@ -171,21 +162,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying
 					.SelectMany(batch => fieldMapper.CreatePartialObjects(planApi, batch, fields))
 					.ToList();
 
-				yield return new PagedResult<Skyline.DataMiner.SDM.PartialObject<T>>(partialObjects, pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<PartialObject<T>>(partialObjects, pageNumber++, pageSize, hasNext);
 			}
-		}
-
-		/// <summary>
-		/// Validates the fields before anything is read, so an unsupported field fails immediately instead of on enumeration.
-		/// </summary>
-		private SelectedFields<DomInstance> CreateSelectedFields(IReadOnlyCollection<FieldExposer> fields, string paramName)
-		{
-			if (fields == null || fields.Count == 0)
-			{
-				throw new ArgumentException("At least one field must be selected.", paramName);
-			}
-
-			return fieldMapper.CreateSelectedFields(fields);
 		}
 
 		private IQuery<DomInstance> TranslateQuery(IQuery<T> query)
