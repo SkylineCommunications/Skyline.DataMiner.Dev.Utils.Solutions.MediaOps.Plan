@@ -26,9 +26,7 @@ try {
     Invoke-DotNetTestAndPublishResults `
         -PathToTestPackageContent $PathToTestPackageContent `
         -TestDllPath $testAssemblyPath `
-        -ResultsFileName 'mediaops-plan-integration-tests.trx' `
-        -TestFilter 'TestCategory=IntegrationTest' `
-        -PublishNotExecuted $false
+        -ResultsFileName 'mediaops-plan-integration-tests.trx'
 
     # Send OK result indicating that test package execution has finished successfully
     Push-TestCaseResult -Outcome 'OK' -Name $testCaseName -Duration ((Get-Date) - $scriptStart) -Message "MediaOps Plan integration test execution finished." -TestAspect Execution

@@ -11,7 +11,6 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class WorkflowPropertyManagementTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;

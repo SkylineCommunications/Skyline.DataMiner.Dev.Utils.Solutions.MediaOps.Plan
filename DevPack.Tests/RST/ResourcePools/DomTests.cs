@@ -14,7 +14,6 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class DomTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;

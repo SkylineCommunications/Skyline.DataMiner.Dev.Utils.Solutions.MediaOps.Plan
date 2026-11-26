@@ -14,7 +14,6 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class ResourceConcurrencyTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -205,12 +204,13 @@
 			jobA = TestContext.Api.Jobs.SaveAsTentative(jobA);
 			jobB = TestContext.Api.Jobs.SaveAsTentative(jobB);
 
-			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			var resourceManagerHelper = TestContext.CreateResourceManagerHelper();
+			var coreResource = resourceManagerHelper.GetResource(resource.CoreResourceId);
 			Assert.IsNotNull(coreResource);
 			coreResource.MaxConcurrency = 1;
-			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+			resourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
 			Assert.IsFalse(
-				TestContext.ResourceManagerHelper.GetTraceDataLastCall()?.ErrorData?.OfType<ResourceManagerErrorData>().Any() ?? false,
+				resourceManagerHelper.GetTraceDataLastCall()?.ErrorData?.OfType<ResourceManagerErrorData>().Any() ?? false,
 				"Expected a forced resource update not to report errors.");
 
 			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
@@ -320,11 +320,12 @@
 			var jobA = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_1")));
 			var jobB = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_2")));
 
-			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			var resourceManagerHelper = TestContext.CreateResourceManagerHelper();
+			var coreResource = resourceManagerHelper.GetResource(resource.CoreResourceId);
 			coreResource.MaxConcurrency = 1;
-			TestContext.ResourceManagerHelper.AddOrUpdateResources(coreResource);
+			resourceManagerHelper.AddOrUpdateResources(coreResource);
 
-			var error = TestContext.ResourceManagerHelper.GetTraceDataLastCall().ErrorData.OfType<ResourceManagerErrorData>().Single();
+			var error = resourceManagerHelper.GetTraceDataLastCall().ErrorData.OfType<ResourceManagerErrorData>().Single();
 			Assert.AreEqual(ResourceManagerErrorData.Reason.ResourceUpdateCausedReservationsToGoToQuarantine, error.ErrorReason);
 			Assert.AreEqual(resource.CoreResourceId, error.SubjectId);
 			Assert.AreEqual(0, error.MustBeMovedToQuarantine?.Count ?? 0, "Expected a refused resource update not to report reservations that must be moved to quarantine.");
