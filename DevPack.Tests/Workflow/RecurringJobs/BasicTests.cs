@@ -15,7 +15,6 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class BasicTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -49,11 +48,8 @@
 		[TestMethod]
 		public void ReadRecurringJobById()
 		{
-			var firstRecurringJob = TestContext.Api.RecurringJobs.Read().FirstOrDefault();
-			if (firstRecurringJob == null && Config.IsQaOps)
-			{
-				Assert.Inconclusive("No recurring job exists on the QAOps system after package installation.");
-			}
+			var created = objectCreator.CreateRecurringJob(NewValidRecurringJob($"{Guid.NewGuid()}_RecurringJob"));
+			var firstRecurringJob = TestContext.Api.RecurringJobs.Read(RecurringJobExposers.Id.Equal(created.Id)).Single();
 
 			var jobToVerify = TestContext.Api.RecurringJobs.Read(firstRecurringJob.Id);
 
@@ -63,11 +59,8 @@
 		[TestMethod]
 		public void ReadRecurringJobByName()
 		{
-			var firstRecurringJob = TestContext.Api.RecurringJobs.Read().FirstOrDefault();
-			if (firstRecurringJob == null && Config.IsQaOps)
-			{
-				Assert.Inconclusive("No recurring job exists on the QAOps system after package installation.");
-			}
+			var created = objectCreator.CreateRecurringJob(NewValidRecurringJob($"{Guid.NewGuid()}_RecurringJob"));
+			var firstRecurringJob = TestContext.Api.RecurringJobs.Read(RecurringJobExposers.Id.Equal(created.Id)).Single();
 
 			var jobToVerify = TestContext.Api.RecurringJobs.Read(RecurringJobExposers.Name.Equal(firstRecurringJob.Name)).First();
 

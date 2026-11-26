@@ -6,6 +6,8 @@
 	/// <seealso cref="ResourceInUseByJobsError"/>
 	/// <seealso cref="ResourceInUseByRecurringJobsError"/>
 	/// <seealso cref="ResourceInUseByWorkflowsError"/>
+	/// <seealso cref="ResourcePoolAssignmentInUseByJobsError"/>
+	/// <seealso cref="ResourcePoolAssignmentInUseByWorkflowsError"/>
 	/// <seealso cref="ResourceUpdateWouldQuarantineJobsError"/>
 	public class ResourceInUseError : ResourceError
 	{

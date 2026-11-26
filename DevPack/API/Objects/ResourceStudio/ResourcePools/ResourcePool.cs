@@ -20,6 +20,8 @@
 		private StorageResourceStudio.ResourcepoolInstance updatedInstance;
 
 		private Guid coreResourcePoolId;
+		private ResourceStudioOrchestrationSettingsContext orchestrationSettingsContext;
+		private OrchestrationSettingsHolder<ResourceStudioOrchestrationSettings> orchestrationSettingsHolder;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ResourcePool"/> class.
@@ -43,8 +45,10 @@
 			OrchestrationSettings = new ResourceStudioOrchestrationSettings();
 		}
 
-		internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
+		internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance, ProfileParameterLookup parameters = null) : base(instance.ID.Id)
 		{
+			orchestrationSettingsContext = new ResourceStudioOrchestrationSettingsContext(planApi, parameters, [instance.ConfigurationInfo?.PoolConfiguration]);
+
 			ParseInstance(planApi, instance);
 			InitTracking();
 		}
@@ -90,13 +94,58 @@
 		public IReadOnlyCollection<CapabilitySettings> Capabilities => capabilitySettings;
 
 		/// <summary>
-		/// Gets the orchestration settings assigned to this resource pool.
+		/// Gets the orchestration settings assigned to this resource pool. They are loaded lazily.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; private set; }
+		public OrchestrationSettings OrchestrationSettings
+		{
+			get => orchestrationSettingsHolder.Value;
+			private set => orchestrationSettingsHolder = OrchestrationSettingsHolder<ResourceStudioOrchestrationSettings>.FromValue((ResourceStudioOrchestrationSettings)value);
+		}
 
 		internal Guid CoreResourcePoolId => coreResourcePoolId;
 
 		internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
+
+		// Orchestration settings are stored outside the resource pool instance, so they are not covered by the hash-based tracking.
+		internal override bool HasChanges => base.HasChanges || (!IsNew && orchestrationSettingsHolder.HasChanges);
+
+		/// <summary>
+		/// Reads the orchestration settings of the specified resource pools that were not read yet, using a single call
+		/// for all of them.
+		/// </summary>
+		/// <param name="resourcePools">The resource pools.</param>
+		internal static void LoadOrchestrationSettings(IEnumerable<ResourcePool> resourcePools)
+		{
+			if (resourcePools == null)
+			{
+				throw new ArgumentNullException(nameof(resourcePools));
+			}
+
+			ResourceStudioOrchestrationSettingsContext.LoadAll(resourcePools.Where(x => x != null).Select(x => x.orchestrationSettingsContext));
+		}
+
+		/// <summary>
+		/// Parses the specified resource pool instances. The orchestration settings are not read: they are read lazily per
+		/// resource pool, while the profile parameters they refer to are shared by all parsed resource pools.
+		/// </summary>
+		/// <param name="planApi">The API used to read the referenced data.</param>
+		/// <param name="instances">The resource pool instances to parse.</param>
+		/// <returns>The parsed resource pools.</returns>
+		internal static List<ResourcePool> Parse(MediaOpsPlanApi planApi, IEnumerable<StorageResourceStudio.ResourcepoolInstance> instances)
+		{
+			if (planApi == null)
+			{
+				throw new ArgumentNullException(nameof(planApi));
+			}
+
+			if (instances == null)
+			{
+				throw new ArgumentNullException(nameof(instances));
+			}
+
+			var parameters = new ProfileParameterLookup(planApi);
+			return instances.Select(x => new ResourcePool(planApi, x, parameters)).ToList();
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()
@@ -111,7 +160,7 @@
 				hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
 				hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
-				hash = (hash * 23) + OrchestrationSettings.GetHashCode();
+				hash = (hash * 23) + orchestrationSettingsHolder.GetOwnerHashCode();
 
 				foreach (var linkedResourcePool in LinkedResourcePools.OrderBy(x => x.LinkedResourcePoolId).ToArray())
 				{
@@ -288,7 +337,7 @@
 			updatedInstance.ResourcePoolOther.IconImage = IconImage;
 			updatedInstance.ResourcePoolOther.URL = Url;
 
-			updatedInstance.ConfigurationInfo.PoolConfiguration = OrchestrationSettings.Id;
+			updatedInstance.ConfigurationInfo.PoolConfiguration = orchestrationSettingsHolder.Id;
 
 			// Setting to null will not create a DOM section in storage.
 			updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged ? true : null;
@@ -334,22 +383,7 @@
 				capabilitySettings.Add(capability);
 			}
 
-			if (instance.ConfigurationInfo.PoolConfiguration == null || instance.ConfigurationInfo.PoolConfiguration == Guid.Empty)
-			{
-				OrchestrationSettings = new ResourceStudioOrchestrationSettings();
-			}
-			else
-			{
-				var domConfiguration = planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations([instance.ConfigurationInfo.PoolConfiguration.Value]).FirstOrDefault();
-				if (domConfiguration != null)
-				{
-					OrchestrationSettings = new ResourceStudioOrchestrationSettings(planApi, domConfiguration);
-				}
-				else
-				{
-					OrchestrationSettings = new ResourceStudioOrchestrationSettings();
-				}
-			}
+			orchestrationSettingsHolder = orchestrationSettingsContext.CreateHolder(instance.ConfigurationInfo.PoolConfiguration);
 		}
 	}
 }

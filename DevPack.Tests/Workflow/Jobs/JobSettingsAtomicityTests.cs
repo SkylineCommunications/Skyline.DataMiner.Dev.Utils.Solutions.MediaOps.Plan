@@ -15,7 +15,6 @@
 	/// </summary>
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class JobSettingsAtomicityTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;

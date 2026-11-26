@@ -12,7 +12,6 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class CompletedStateTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;

@@ -16,7 +16,6 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class BasicTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -50,9 +49,8 @@
 		[TestMethod]
 		public void ReadJobById()
 		{
-			var firstJob = TestContext.Api.Jobs.Read().FirstOrDefault();
-			if (firstJob == null)
-				return;
+			var createdJob = CreateJob($"{Guid.NewGuid()}_Job");
+			var firstJob = TestContext.Api.Jobs.Read(JobExposers.Id.Equal(createdJob.Id)).Single();
 
 			var jobToVerify = TestContext.Api.Jobs.Read(firstJob.Id);
 
@@ -62,13 +60,25 @@
 		[TestMethod]
 		public void ReadJobByName()
 		{
-			var firstJob = TestContext.Api.Jobs.Read().FirstOrDefault();
-			if (firstJob == null)
-				return;
+			var createdJob = CreateJob($"{Guid.NewGuid()}_Job");
+			var firstJob = TestContext.Api.Jobs.Read(JobExposers.Id.Equal(createdJob.Id)).Single();
 
 			var jobToVerify = TestContext.Api.Jobs.Read(JobExposers.Name.Equal(firstJob.Name)).First();
 
 			Assert.AreEqual(firstJob, jobToVerify);
+		}
+
+		private Job CreateJob(string name)
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			return objectCreator.CreateJob(new Job
+			{
+				Name = name,
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
+			});
 		}
 
 		[TestMethod]
@@ -225,6 +235,7 @@
 
 			existingJob.Description = "Updated via CreateOrUpdate";
 
+			objectCreator.AssignJobKey(newJob);
 			var results = TestContext.Api.Jobs.CreateOrUpdate(new[] { newJob, existingJob });
 			objectCreator.StoreJobIds(results.Select(j => j.Id));
 

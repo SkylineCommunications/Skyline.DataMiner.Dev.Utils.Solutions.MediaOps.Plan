@@ -9,7 +9,6 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class LinkedPoolTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;

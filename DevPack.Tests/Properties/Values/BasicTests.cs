@@ -15,10 +15,12 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class BasicTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
+
+		// (LinkedObjectId, SubId) must be unique across the whole system, so each test gets its own LinkedObjectIds to run alongside others.
+		private readonly string objectIdPrefix = $"{Guid.NewGuid()}_";
 
 		public BasicTests()
 		{
@@ -50,7 +52,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 			var collectionId = Guid.NewGuid();
 			var collection = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = "global",
 				SubId = string.Empty,
 			});
@@ -59,7 +61,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 			var created = objectCreator.CreatePropertySettingCollection(collection);
 
 			Assert.AreEqual(collectionId, created.Id);
-			Assert.AreEqual("obj-1", created.LinkedObjectId);
+			Assert.AreEqual($"{objectIdPrefix}obj-1", created.LinkedObjectId);
 			Assert.AreEqual("global", created.Scope);
 			Assert.AreEqual(1, created.StringSettings.Count);
 			Assert.AreEqual("hello", created.StringSettings.First().Value);
@@ -83,13 +85,13 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			var collection1 = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = "global",
 				SubId = string.Empty,
 			});
 			var collection2 = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-2",
+				LinkedObjectId = $"{objectIdPrefix}obj-2",
 				Scope = "global",
 				SubId = string.Empty,
 			});
@@ -122,13 +124,13 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			var collection1 = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = "global",
 				SubId = string.Empty,
 			});
 			var collection2 = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-2",
+				LinkedObjectId = $"{objectIdPrefix}obj-2",
 				Scope = "global",
 				SubId = string.Empty,
 			});
@@ -314,7 +316,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			var collection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = "global",
 				SubId = string.Empty,
 			});
@@ -349,7 +351,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			var collection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = "global",
 				SubId = string.Empty,
 			});
@@ -382,7 +384,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			var collection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = "global",
 				SubId = string.Empty,
 			});
@@ -419,7 +421,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		{
 			var data = new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = string.Empty,
 				SubId = string.Empty,
 			};
@@ -432,7 +434,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		{
 			var collection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = "global",
 				SubId = string.Empty,
 			});
@@ -446,7 +448,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		{
 			var collection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = "global",
 				SubId = string.Empty,
 			});
@@ -459,19 +461,20 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void CountReturnsCorrectNumber()
 		{
-			var countBefore = TestContext.Api.PropertySettingCollections.Count();
+			var linkedObjectId = $"{objectIdPrefix}obj-count";
+			var filter = PropertySettingCollectionExposers.LinkedObjectId.Equal(linkedObjectId);
+
+			Assert.AreEqual(0, TestContext.Api.PropertySettingCollections.Count(filter));
 
 			var collection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-count",
+				LinkedObjectId = linkedObjectId,
 				Scope = "global",
 				SubId = string.Empty,
 			});
 			objectCreator.CreatePropertySettingCollection(collection);
 
-			var countAfter = TestContext.Api.PropertySettingCollections.Count();
-
-			Assert.AreEqual(countBefore + 1, countAfter);
+			Assert.AreEqual(1, TestContext.Api.PropertySettingCollections.Count(filter));
 		}
 
 		[TestMethod]
@@ -500,8 +503,8 @@ namespace RT_MediaOps.Plan.Properties.Values
 		{
 			var collections = new List<PropertySettingCollection>
 			{
-				new PropertySettingCollection(new PropertySettingCollectionData { LinkedObjectId = "bulk-obj-1", Scope = "global", SubId = string.Empty }),
-				new PropertySettingCollection(new PropertySettingCollectionData { LinkedObjectId = "bulk-obj-2", Scope = "global", SubId = string.Empty }),
+				new PropertySettingCollection(new PropertySettingCollectionData { LinkedObjectId = $"{objectIdPrefix}bulk-obj-1", Scope = "global", SubId = string.Empty }),
+				new PropertySettingCollection(new PropertySettingCollectionData { LinkedObjectId = $"{objectIdPrefix}bulk-obj-2", Scope = "global", SubId = string.Empty }),
 			};
 
 			var created = objectCreator.CreatePropertySettingCollections(collections);
@@ -534,7 +537,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 			var collectionId = Guid.NewGuid();
 			var collection = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
 			{
-				LinkedObjectId = "obj-1",
+				LinkedObjectId = $"{objectIdPrefix}obj-1",
 				Scope = "global",
 				SubId = string.Empty,
 			});

@@ -193,27 +193,20 @@ Dependencies/
 
 ### qaops.config.xml
 
-If you need to customize the QAOps test execution behavior, adapt the `qaops.config.xml` file to configure package installation settings.
+Keep `PerformPackageInstallation` set to `true` in [`qaops.config.xml`](qaops.config.xml). Before the PowerShell pipeline starts, the [package installer](../QAOpsPackage.cs) deploys the full MediaOps Plan solution, reconciles the Plan-owned DOM schemas, and seeds only missing fixtures. See the [QAOps setup order](../README.md#execution-and-package-contents) for the prerequisites and intentional overlap.
 
 #### Configuration Options
 
-* **Package Installation**: Control whether the dmtest package is installed on DataMiner
-  * Set to `false` if your test only requires PowerShell script execution
-  * Your PowerShell scripts in `TestPackagePipeline` will still execute regardless of this setting
+* **Package installation**: Controls whether QAOps installs the `.dmtest` package on DataMiner.
+  * Set to `false` only for packages that can run without the installer.
+  * QAOps runs the numbered PowerShell scripts in `TestPackagePipeline` regardless of this setting.
 
 #### Example Configuration
 
-Create your `qaops.config.xml` file like this:
+This package uses the following configuration:
 
 ```xml
-<?xml version="1.0" encoding="utf-8"?>
-<QAOpsConfig>
-  <!-- Set to false if you only need PowerShell script execution -->
+<Settings>
   <PerformPackageInstallation>true</PerformPackageInstallation>
-</QAOpsConfig>
+</Settings>
 ```
-
-This allows you to choose between different testing approaches:
-
-* **Full DataMiner Tests**: Keep `PerformPackageInstallation` as `true` to install the dmtest package and run comprehensive automation tests
-* **Lightweight Tests**: Set to `false` to skip package installation and run only PowerShell-based tests for faster execution

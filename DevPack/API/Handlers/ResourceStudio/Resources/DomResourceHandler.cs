@@ -10,6 +10,7 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -25,14 +26,19 @@
 
 		private Dictionary<Guid, ResourcePool> resourcePoolsById = new Dictionary<Guid, ResourcePool>();
 
+		private bool validatePoolAssignmentUsage = true;
+
 		private DomResourceHandler(MediaOpsPlanApi planApi)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 		}
 
-		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result, bool allowDeprecatedUpdates = false)
+		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result, bool allowDeprecatedUpdates = false, bool validatePoolAssignmentUsage = true)
 		{
-			var handler = new DomResourceHandler(planApi);
+			var handler = new DomResourceHandler(planApi)
+			{
+				validatePoolAssignmentUsage = validatePoolAssignmentUsage,
+			};
 			handler.CreateOrUpdate(apiResources, allowDeprecatedUpdates);
 
 			result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
@@ -176,9 +182,14 @@
 			}
 
 			var resourcesToCreate = resources.Where(x => x.IsNew).ToList();
-			var resourcesToUpdate = resources.Except(resourcesToCreate).ToList();
 
-			var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(resourcesToUpdate));
+			var storedResourcesById = ValidateStoredStateForUpdateAction(resources.Except(resourcesToCreate).ToList());
+			var resourcesToUpdate = resources.Except(resourcesToCreate).Where(IsValid).ToList();
+
+			// The change detection merges the changes into the stored instances, so the stored pools are captured first.
+			var storedPoolIdsByResourceId = GetStoredPoolIdsOfCompleteResources(storedResourcesById.Values);
+
+			var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(resourcesToUpdate, storedResourcesById));
 
 			var toUpdateNameValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
 			ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateDomNames), act => ValidateDomNames(resourcesToCreate.Concat(toUpdateNameValidation).ToList()));
@@ -186,6 +197,11 @@
 			var toCreatePoolValidation = resourcesToCreate.Where(IsValid);
 			var toUpdatePoolValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids.Id)));
 			ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation).ToList());
+
+			if (validatePoolAssignmentUsage)
+			{
+				ValidateRemovedPoolAssignmentUsage(toUpdatePoolValidation.Where(IsValid).ToList(), changeResults, storedPoolIdsByResourceId);
+			}
 
 			var resourcesWithCapabilityChanges = resourcesToUpdate.Where(x =>
 				IsValid(x)
@@ -302,11 +318,20 @@
 
 			ValidateStateForCompleteFromDraftAction(apiResources);
 
-			// Create CORE Resources
-			var resourcesToCreate = apiResources
-				.Where(IsValid)
-				.Select(x => x.OriginalInstance)
-				.ToList();
+			var lockResult = planApi.LockManager.LockAndExecute(apiResources.Where(IsValid).ToList(), TransitionToCompleteFromDraftLocked);
+			ReportError(lockResult);
+		}
+
+		private void TransitionToCompleteFromDraftLocked(ICollection<Resource> apiResources)
+		{
+			// The resources were read before the lock was granted. The CORE resource is created and linked to the stored
+			// resource, so a resource that was completed in the meantime does not get a second CORE resource, and the
+			// link is saved on the stored resource instead of on a copy that would overwrite later changes.
+			var resourcesToCreate = GetStoredDomResources(
+				apiResources,
+				[SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Draft],
+				[SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Complete],
+				"Not allowed to complete a resource that is not in Draft state.");
 			if (resourcesToCreate.Count == 0)
 			{
 				return;
@@ -369,10 +394,25 @@
 
 			ValidateStateForCompleteFromDeprecatedAction(apiResources);
 
-			// Update CORE resources
-			var resourcesToRestore = apiResources.Where(IsValid).ToList();
+			var lockResult = planApi.LockManager.LockAndExecute(apiResources.Where(IsValid).ToList(), TransitionToCompleteFromDeprecatedLocked);
+			ReportError(lockResult);
+		}
 
-			CoreResourceHandler.TryRestore(planApi, resourcesToRestore.Select(x => x.OriginalInstance).ToList(), out var coreResult);
+		private void TransitionToCompleteFromDeprecatedLocked(ICollection<Resource> apiResources)
+		{
+			// The resources were read before the lock was granted. The CORE resource is made available before the DOM
+			// transition, so the stored state is validated first.
+			var resourcesToRestore = GetStoredDomResources(
+				apiResources,
+				[SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Deprecated],
+				[SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Complete],
+				"Not allowed to restore a resource that is not in Deprecated state.");
+			if (resourcesToRestore.Count == 0)
+			{
+				return;
+			}
+
+			CoreResourceHandler.TryRestore(planApi, resourcesToRestore, out var coreResult);
 
 			foreach (var id in coreResult.UnsuccessfulIds)
 			{
@@ -414,10 +454,25 @@
 			ValidateStateForDeprecateAction(apiResources);
 			ValidateWorkflowUsage(apiResources.Where(IsValid).ToArray());
 
-			// Update CORE resources
-			var resourcesToDeprecate = apiResources.Where(IsValid).ToList();
+			var lockResult = planApi.LockManager.LockAndExecute(apiResources.Where(IsValid).ToList(), TransitionToDeprecatedLocked);
+			ReportError(lockResult);
+		}
 
-			CoreResourceHandler.TryDeprecate(planApi, resourcesToDeprecate.Select(x => x.OriginalInstance).ToList(), out var coreResult);
+		private void TransitionToDeprecatedLocked(ICollection<Resource> apiResources)
+		{
+			// The resources were read before the lock was granted. The CORE resource is made unavailable before the DOM
+			// transition, so the stored state is validated first.
+			var resourcesToDeprecate = GetStoredDomResources(
+				apiResources,
+				[SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Complete],
+				[SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Deprecated],
+				"Not allowed to deprecate a resource that is not in Completed state.");
+			if (resourcesToDeprecate.Count == 0)
+			{
+				return;
+			}
+
+			CoreResourceHandler.TryDeprecate(planApi, resourcesToDeprecate, out var coreResult);
 
 			foreach (var id in coreResult.UnsuccessfulIds)
 			{
@@ -479,7 +534,21 @@
 
 		private void DeleteCoreResources(ICollection<Resource> resources)
 		{
-			CoreResourceHandler.TryDelete(planApi, resources.Select(x => x.OriginalInstance).ToList(), out var coreResult);
+			// The resources were read before the lock was granted. The stored resources are validated and deleted instead,
+			// so a resource that was completed in the meantime is not deleted, and the CORE resource that is deleted
+			// along with it is the one that is linked now.
+			var storedResources = GetStoredDomResources(
+				resources,
+				[SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Draft, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Deprecated],
+				[],
+				"Not allowed to delete a resource that is not in Draft or Deprecated state.",
+				isDelete: true);
+			if (storedResources.Count == 0)
+			{
+				return;
+			}
+
+			CoreResourceHandler.TryDelete(planApi, storedResources, out var coreResult);
 
 			foreach (var id in coreResult.UnsuccessfulIds)
 			{
@@ -491,7 +560,7 @@
 				}
 			}
 
-			var resourceInstancesToDelete = resources.Where(IsValid).Select(x => x.OriginalInstance.ToInstance()).ToList();
+			var resourceInstancesToDelete = storedResources.Where(x => !UnsuccessfulItems.Contains(x.ID.Id)).Select(x => x.ToInstance()).ToList();
 			planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(resourceInstancesToDelete, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
@@ -601,6 +670,87 @@
 
 				ReportError(foundInstance.ID.Id, error);
 			}
+		}
+
+		// The state rules, the state-dependent validations and the decision which changes go to the CORE resource ran
+		// against the resources as they were read, before the lock was granted. A resource whose stored state changed
+		// since then is rejected. The stored resources are returned so they are not read twice.
+		private Dictionary<Guid, DomResource> ValidateStoredStateForUpdateAction(ICollection<Resource> apiResources)
+		{
+			if (apiResources.Count == 0)
+			{
+				return new Dictionary<Guid, DomResource>();
+			}
+
+			var storedResourcesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(apiResources.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+			foreach (var resource in apiResources)
+			{
+				// A resource that no longer exists is reported by the change detection.
+				if (!storedResourcesById.TryGetValue(resource.Id, out var storedResource) || storedResource.Status == resource.OriginalInstance.Status)
+				{
+					continue;
+				}
+
+				ReportError(resource.Id, new ResourceInvalidStateError
+				{
+					ErrorMessage = $"The state of the resource changed from {resource.State} to {ToResourceState(storedResource.Status)} after the resource was read. Read the resource again and retry the update.",
+					Id = resource.Id,
+				});
+			}
+
+			return storedResourcesById;
+		}
+
+		// Re-reads the resources while holding the lock. The resources in one of the expected statuses are returned; a
+		// resource that already reached one of the target statuses is reported as successful and any other one as an
+		// error. A resource that no longer exists is reported as successful when deleting it, and as an error otherwise.
+		private List<DomResource> GetStoredDomResources(
+			ICollection<Resource> apiResources,
+			ICollection<SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum> expectedStatuses,
+			ICollection<SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum> targetStatuses,
+			string invalidStateMessage,
+			bool isDelete = false)
+		{
+			var storedResourcesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(apiResources.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+
+			var domResources = new List<DomResource>();
+			foreach (var resource in apiResources)
+			{
+				if (!storedResourcesById.TryGetValue(resource.Id, out var storedResource))
+				{
+					if (isDelete)
+					{
+						ReportSuccess(resource.OriginalInstance);
+					}
+					else
+					{
+						ReportError(resource.Id, new ResourceNotFoundError { ErrorMessage = $"Resource with ID '{resource.Id}' no longer exists.", Id = resource.Id });
+					}
+				}
+				else if (expectedStatuses.Contains(storedResource.Status))
+				{
+					domResources.Add(storedResource);
+				}
+				else if (targetStatuses.Contains(storedResource.Status))
+				{
+					ReportSuccess(storedResource);
+				}
+				else
+				{
+					ReportError(resource.Id, new ResourceInvalidStateError
+					{
+						ErrorMessage = invalidStateMessage,
+						Id = resource.Id,
+					});
+				}
+			}
+
+			return domResources;
+		}
+
+		private static ResourceState ToResourceState(SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum status)
+		{
+			return EnumExtensions.MapEnum<SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(status);
 		}
 
 		private void ValidateStateForUpdateAction(ICollection<Resource> apiResources)
@@ -891,6 +1041,43 @@
 					MarkAsResourceWithCoreChanges(resource);
 				}
 			}
+		}
+
+		// Jobs and workflows validate that each resource node's resource is still part of the node's pool, so a resource
+		// that is unassigned from a pool it is used from would make those jobs and workflows impossible to update.
+		// The removed pools are taken from the stored resource, so a stale snapshot cannot hide a removal.
+		private void ValidateRemovedPoolAssignmentUsage(ICollection<Resource> apiResources, ICollection<DomChangeResults> changeResults, IReadOnlyDictionary<Guid, List<Guid>> storedPoolIdsByResourceId)
+		{
+			if (apiResources.Count == 0)
+			{
+				return;
+			}
+
+			var mergedInstancesById = changeResults.ToDictionary(x => x.Instance.ID.Id, x => new DomResource(x.Instance));
+			var removedAssignments = new List<(Resource Resource, Guid ResourcePoolId)>();
+
+			foreach (var resource in apiResources)
+			{
+				if (!storedPoolIdsByResourceId.TryGetValue(resource.Id, out var storedPoolIds)
+					|| !mergedInstancesById.TryGetValue(resource.Id, out var mergedResource))
+				{
+					continue;
+				}
+
+				var mergedPoolIds = mergedResource.ResourceInternalProperties?.PoolIds ?? Enumerable.Empty<Guid>();
+
+				removedAssignments.AddRange(storedPoolIds.Except(mergedPoolIds).Select(x => (resource, x)));
+			}
+
+			PassTraceData(SlcWorkflowResourcePoolAssignmentUsageValidator.Validate(planApi, removedAssignments));
+		}
+
+		// Only resources in Complete state can be used by jobs and workflows.
+		private static Dictionary<Guid, List<Guid>> GetStoredPoolIdsOfCompleteResources(IEnumerable<DomResource> storedResources)
+		{
+			return storedResources
+				.Where(x => x.Status == SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Complete)
+				.ToDictionary(x => x.ID.Id, x => x.ResourceInternalProperties?.PoolIds?.ToList() ?? new List<Guid>());
 		}
 
 		private void ValidateCapacities(ICollection<Resource> apiResources)
@@ -1219,13 +1406,13 @@
 			PassTraceData(SlcWorkflowResourceUsageValidator.Validate(planApi, apiResources));
 		}
 
-		private ICollection<DomChangeResults> GetResourcesWithChanges(ICollection<Resource> apiResources)
+		private ICollection<DomChangeResults> GetResourcesWithChanges(ICollection<Resource> apiResources, IReadOnlyDictionary<Guid, DomResource> storedResourcesById)
 		{
 			return GetItemsWithChanges<Resource, DomResource>(
 				apiResources,
 				p => p.OriginalInstance,
 				p => p.GetInstanceWithChanges(),
-				ids => planApi.DomHelpers.SlcResourceStudioHelper.GetResources(ids),
+				ids => ids.Where(storedResourcesById.ContainsKey).Select(id => storedResourcesById[id]),
 				p => new ResourceNotFoundError { ErrorMessage = $"Resource with ID '{p.Id}' no longer exists.", Id = p.Id },
 				(p, msg) => new ResourceValueAlreadyChangedError { ErrorMessage = msg, Id = p.Id })
 				.ToList();

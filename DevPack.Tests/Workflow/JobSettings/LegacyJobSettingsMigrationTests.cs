@@ -69,7 +69,7 @@ namespace RT_MediaOps.Plan.Workflow.JobSettings
 			DeleteAllAppSettings();
 			CreateLegacyInstance("LEG-", 6, 100, 5, 245);
 
-			var job = objectCreator.CreateJob(NewJob());
+			var job = objectCreator.CreateJob(NewJob(), assignKey: false);
 
 			Assert.AreEqual("LEG-000245", job.Key);
 			Assert.AreEqual(250, ReadFixedInstance().JobSettings.JobIDNextSequence);
@@ -123,7 +123,7 @@ namespace RT_MediaOps.Plan.Workflow.JobSettings
 			CreateFixedInstance("JOB #", 5, 1, 1, 3);
 			CreateLegacyInstance("LEG-", 6, 1, 1, 120);
 
-			var job = objectCreator.CreateJob(NewJob());
+			var job = objectCreator.CreateJob(NewJob(), assignKey: false);
 
 			Assert.AreEqual("LEG-000120", job.Key);
 			Assert.AreEqual(121, ReadFixedInstance().JobSettings.JobIDNextSequence);

@@ -13,9 +13,9 @@
 		{
 		}
 
-		internal WorkflowOrchestrationEvent(MediaOpsPlanApi planApi, StorageWorkflow.OrchestrationEventsSection section)
+		internal WorkflowOrchestrationEvent(MediaOpsPlanApi planApi, StorageWorkflow.OrchestrationEventsSection section, ProfileParameterLookup parameters)
 		{
-			ParseSection(planApi, section);
+			ParseSection(planApi, section, parameters);
 			InitTracking();
 		}
 
@@ -45,7 +45,7 @@
 			return updatedSection;
 		}
 
-		private void ParseSection(MediaOpsPlanApi planApi, StorageWorkflow.OrchestrationEventsSection section)
+		private void ParseSection(MediaOpsPlanApi planApi, StorageWorkflow.OrchestrationEventsSection section, ProfileParameterLookup parameters)
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
@@ -54,7 +54,7 @@
 
 			if (section.ScriptExecutionDetails != null)
 			{
-				ExecutionDetails = ScriptExecutionDetails.FromStorage(planApi, section.ScriptExecutionDetails);
+				ExecutionDetails = ScriptExecutionDetails.FromStorage(planApi, section.ScriptExecutionDetails, parameters);
 			}
 		}
 	}

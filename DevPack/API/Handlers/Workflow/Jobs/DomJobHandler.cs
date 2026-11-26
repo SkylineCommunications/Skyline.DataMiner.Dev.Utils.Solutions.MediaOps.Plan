@@ -9,6 +9,7 @@
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
@@ -272,6 +273,10 @@
 				return;
 			}
 
+			// The validations below and the default job equality used to split the jobs touch the orchestration settings
+			// of every job and node, so they are read up front in a single batch.
+			Job.LoadOrchestrationSettings(apiJobs);
+
 			var toCreate = apiJobs.Where(x => x.IsNew).ToList();
 			var toUpdate = apiJobs.Except(toCreate).ToList();
 
@@ -362,9 +367,11 @@
 			}
 
 			var toCreate = apiJobs.Where(x => x.IsNew).ToList();
-			var toUpdate = apiJobs.Except(toCreate).ToList();
 
-			var changeResults = GetJobsWithChanges(toUpdate);
+			var storedJobsById = ValidateStoredStateForUpdateAction(apiJobs.Except(toCreate).ToList());
+			var toUpdate = apiJobs.Except(toCreate).Where(IsValid).ToList();
+
+			var changeResults = GetJobsWithChanges(toUpdate, storedJobsById);
 
 			// A single wrapper per merged instance, shared by the timing re-validation and the error re-validation
 			// below. Wrapping the same DOM instance a second time re-parses all of its sections without yielding an
@@ -420,6 +427,7 @@
 			// the rehydrated jobs would fall back to the stored (or, for a node that was just added, a missing)
 			// configuration and would be persisted pointing at settings that do not match what is being saved. The
 			// scope is closed again before anything is written, so the settings handler still compares against storage.
+			// The settings are read lazily, so they are loaded while the seeded scope is still open.
 			List<Job> changedJobs;
 			using (planApi.DomHelpers.SlcWorkflowHelper.BeginConfigurationScope(
 				configurationsToSeed: CollectConfigurationInstances(orchestrationSettingsByJob)))
@@ -427,6 +435,8 @@
 				changedJobs = mergedDomJobs
 					.Select(x => new Job(planApi, x))
 					.ToList();
+
+				Job.LoadOrchestrationSettings(changedJobs);
 			}
 
 			// The core reservations are updated before the re-validation, because that validation reads the reservation
@@ -740,11 +750,27 @@
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
 			}
 
+			// The jobs were read before the lock was granted, so the stored jobs are validated and moved instead. A core
+			// reservation is created before the transition, so a job that is no longer a Draft must be rejected first.
+			apiJobs = Job.Parse(planApi, GetStoredDomJobs(
+				apiJobs,
+				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Draft],
+				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Tentative],
+				"Only jobs in Draft state can be moved to Tentative state."));
+			ValidateEndNotInPast(apiJobs);
+			apiJobs = apiJobs.Where(IsValid).ToList();
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
 			// Re-read the resources referenced by the node graph so the resource cache used by the reservation sync is
 			// populated, and collect (but do not persist) every job's orchestration settings so they can be cached.
 			// Settings are not changed during a draft-to-tentative transition, so re-persisting them is not required.
 			CollectReferencedIds(apiJobs.ToList(), out var resourceIds, out _);
 			resourcesById = planApi.Resources.Read(resourceIds).ToDictionary(x => x.Id);
+
+			Job.LoadOrchestrationSettings(apiJobs);
 
 			foreach (var job in apiJobs.Where(IsValid))
 			{
@@ -992,6 +1018,8 @@
 			{
 				ReportSuccess(caughtUpDomJobsById.TryGetValue(domJob.ID.Id, out var caughtUpDomJob) ? caughtUpDomJob : domJob);
 			}
+
+			Job.LoadOrchestrationSettings(tentativeJobs);
 
 			ValidateEndNotInPast(tentativeJobs);
 			ValidateAllNodesHaveResourceAssigned(tentativeJobs);
@@ -1818,16 +1846,24 @@
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
 			}
 
+			// The jobs were read before the lock was granted. The reservation is deleted before the transition, so the
+			// stored state (and end time) is validated first: a job that was confirmed in the meantime keeps its reservation.
+			var storedJobs = Job.Parse(planApi, GetStoredDomJobs(
+				apiJobs,
+				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Draft, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Tentative],
+				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Completed],
+				"Only jobs in Draft or Tentative state can be marked as completed."));
+			ValidateEndInPast(storedJobs);
+			storedJobs = storedJobs.Where(IsValid).ToList();
+
 			// A Tentative job has a core reservation that must be removed; a Draft job has none, in which case the
 			// reservation delete is a no-op. Adding every job is therefore safe.
-			foreach (var job in apiJobs)
+			foreach (var job in storedJobs)
 			{
 				jobIdsWithCoreChanges.Add(job.Id);
 			}
 
-			// The transition does not modify the job, so the stored instance is used as-is; conflict detection via
-			// GetJobsWithChanges adds no value when no changes are applied.
-			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
+			var domJobs = storedJobs.Select(x => x.OriginalInstance).ToList();
 
 			TransitionDomJobsToCompleted(domJobs);
 		}
@@ -1941,6 +1977,20 @@
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
 			}
 
+			// The jobs were read before the lock was granted, so the stored jobs are validated and started instead. A job
+			// that already runs has been started, unless a new start time was requested that would not be applied.
+			apiJobs = Job.Parse(planApi, GetStoredDomJobs(
+				apiJobs,
+				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Confirmed],
+				options.NewStartTime.HasValue ? [] : [Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running],
+				"Only jobs in Confirmed state can be manually started."));
+			ValidateNewStartTime(apiJobs, options);
+			apiJobs = apiJobs.Where(IsValid).ToList();
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
 			// Step 1: move the core reservation start to the current time and persist it BEFORE the DOM job is updated.
 			// Moving the reservation start fires the reservation start event, which drives the Confirmed-to-Running
 			// transition, and yields the actual persisted start that the DOM job and its nodes must reflect.
@@ -2034,6 +2084,22 @@
 			if (apiJobs.Any(x => !IsValid(x)))
 			{
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// The jobs were read before the lock was granted, so the stored jobs are validated and stopped instead. A job
+			// that completed in the meantime is rejected: its reservation already ended and the requested end is not applied.
+			apiJobs = Job.Parse(planApi, GetStoredDomJobs(
+				apiJobs,
+				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running],
+				[],
+				"Only jobs in Running state can be stopped."));
+			ValidateNotRunningInPreRoll(apiJobs);
+			ValidateNotRunningInPostRoll(apiJobs);
+			ValidateNewPostRollEnd(apiJobs, options);
+			apiJobs = apiJobs.Where(IsValid).ToList();
+			if (apiJobs.Count == 0)
+			{
+				return;
 			}
 
 			// Step 1: move the core reservation end and persist it BEFORE the DOM job is updated. The reservation must
@@ -2452,11 +2518,11 @@
 
 			ValidateStateForDeleteAction(apiJobs, options.ForceDelete);
 
-			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), DeleteLocked);
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), jobs => DeleteLocked(jobs, options.ForceDelete));
 			ReportError(lockResult);
 		}
 
-		private void DeleteLocked(ICollection<Job> apiJobs)
+		private void DeleteLocked(ICollection<Job> apiJobs, bool forceDelete)
 		{
 			if (apiJobs == null)
 			{
@@ -2473,7 +2539,7 @@
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
 			}
 
-			var jobsToDelete = apiJobs.ToList();
+			var jobsToDelete = GetStoredJobsForDelete(apiJobs, forceDelete);
 
 			// A non-Draft job has a core reservation that must be removed before the job itself is deleted; a Draft job
 			// has none. If a reservation deletion fails, the job is not deleted so its reservation is not orphaned.
@@ -2529,6 +2595,41 @@
 			SyncLiveOrchestrationForDelete(jobsToDelete);
 		}
 
+		// The jobs were read before the lock was granted. The stored jobs are validated and deleted instead, so the
+		// reservation, orchestration settings, property settings and links that are removed along with a job are the
+		// ones it has now. A job that no longer exists has already been deleted.
+		private List<Job> GetStoredJobsForDelete(ICollection<Job> apiJobs, bool forceDelete)
+		{
+			var storedJobsById = planApi.DomHelpers.SlcWorkflowHelper.GetJobs(apiJobs.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+
+			var storedDomJobs = new List<DomJob>();
+			foreach (var job in apiJobs)
+			{
+				if (!storedJobsById.TryGetValue(job.Id, out var storedJob))
+				{
+					ReportSuccess(job.OriginalInstance);
+					continue;
+				}
+
+				if (!forceDelete
+					&& storedJob.Status != Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Draft
+					&& storedJob.Status != Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Canceled
+					&& storedJob.Status != Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Completed)
+				{
+					ReportError(job.Id, new JobInvalidStateError
+					{
+						ErrorMessage = "Not allowed to delete a job that is not in Draft, Canceled or Completed state.",
+						Id = job.Id,
+					});
+					continue;
+				}
+
+				storedDomJobs.Add(storedJob);
+			}
+
+			return Job.Parse(planApi, storedDomJobs);
+		}
+
 		/// <summary>
 		/// Pushes the orchestration job configuration and events of the successfully-persisted jobs to MediaOps Live.
 		/// </summary>
@@ -2548,7 +2649,10 @@
 				return;
 			}
 
-			foreach (var job in apiJobs.Where(IsValid))
+			var jobsToSync = apiJobs.Where(IsValid).ToList();
+			Job.LoadOrchestrationSettings(jobsToSync);
+
+			foreach (var job in jobsToSync)
 			{
 				var state = overrideState ?? job.State;
 
@@ -2612,6 +2716,8 @@
 			}
 
 			// The orchestration settings of the nodes are stored as separate DOM instances and must be removed as well.
+			Job.LoadOrchestrationSettings(apiJobs);
+
 			var orchestrationSettings = apiJobs
 				.SelectMany(x => new[] { x.OrchestrationSettings }.Concat(x.NodeGraph.Nodes.Select(node => node.OrchestrationSettings)))
 				.Where(x => x != null)
@@ -3215,6 +3321,36 @@
 
 				ReportError(job.Id, error);
 			}
+		}
+
+		// The state rules, the state-dependent validations and the node timings ran against the jobs as they were read,
+		// before the lock was granted. A job whose stored state changed since then is rejected, because none of these
+		// checks hold for the state that would be updated. The stored jobs are returned so they are not read twice.
+		private Dictionary<Guid, DomJob> ValidateStoredStateForUpdateAction(ICollection<Job> apiJobs)
+		{
+			if (apiJobs.Count == 0)
+			{
+				return new Dictionary<Guid, DomJob>();
+			}
+
+			var storedJobsById = planApi.DomHelpers.SlcWorkflowHelper.GetJobs(apiJobs.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+			foreach (var job in apiJobs)
+			{
+				// A job that no longer exists is reported by the change detection.
+				if (!storedJobsById.TryGetValue(job.Id, out var storedJob) || storedJob.Status == job.OriginalInstance.Status)
+				{
+					continue;
+				}
+
+				var storedState = EnumExtensions.MapEnum<Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum, JobState>(storedJob.Status);
+				ReportError(job.Id, new JobInvalidStateError
+				{
+					ErrorMessage = $"The state of the job changed from {job.State} to {storedState} after the job was read. Read the job again and retry the update.",
+					Id = job.Id,
+				});
+			}
+
+			return storedJobsById;
 		}
 
 		private void ValidateStateForDeleteAction(ICollection<Job> apiJobs, bool forceDelete)
@@ -4397,13 +4533,15 @@
 			}
 		}
 
-		private ICollection<DomChangeResults> GetJobsWithChanges(ICollection<Job> apiJobs)
+		private ICollection<DomChangeResults> GetJobsWithChanges(ICollection<Job> apiJobs, IReadOnlyDictionary<Guid, DomJob> storedJobsById = null)
 		{
 			return GetItemsWithChanges<Job, DomJob>(
 				apiJobs,
 				j => j.OriginalInstance,
 				j => j.GetInstanceWithChanges(),
-				ids => planApi.DomHelpers.SlcWorkflowHelper.GetJobs(ids),
+				ids => storedJobsById == null
+					? planApi.DomHelpers.SlcWorkflowHelper.GetJobs(ids)
+					: ids.Where(storedJobsById.ContainsKey).Select(id => storedJobsById[id]),
 				j => new JobNotFoundError { ErrorMessage = $"Job with ID '{j.Id}' no longer exists.", Id = j.Id },
 				(j, msg) => new JobValueAlreadyChangedError { ErrorMessage = msg, Id = j.Id })
 				.ToList();
