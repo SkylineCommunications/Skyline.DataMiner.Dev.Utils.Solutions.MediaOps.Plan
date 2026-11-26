@@ -10,11 +10,11 @@
 	/// Defines methods for managing <see cref="Job"/> objects, including state transitions.
 	/// </summary>
 	/// <remarks>
-	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialQuery{T})"/>) support every scalar
+	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialQuery{T})"/>) support every
 	/// field of <see cref="JobExposers"/> and return the same values as a full read. Fields that hold a value per node,
-	/// error, orchestration setting or property setting are selected with their collection exposer (e.g.
-	/// <see cref="JobExposers.ResourcesCollection"/> or <see cref="JobExposers.Errors.CodeCollection"/>) and read with
-	/// <see cref="PartialObject{T}.GetValues{TField}(SDM.Exposers.CollectionExposer{T, TField})"/>. Values are looked up by
+	/// error, orchestration setting or property setting (e.g. <see cref="JobExposers.Resources"/> or
+	/// <see cref="JobExposers.Errors.Code"/>) are read with
+	/// <see cref="PartialObject{T}.GetValues{TField}(Net.Messages.SLDataGateway.DynamicListExposer{T, TField})"/>. Values are looked up by
 	/// exposer instance, so read them with the exposers that were included in the query. The identifier is only returned
 	/// when <see cref="JobExposers.Id"/> is included.
 	/// Selecting orchestration or property settings fields reads the instances they are stored in once per batch of jobs.
