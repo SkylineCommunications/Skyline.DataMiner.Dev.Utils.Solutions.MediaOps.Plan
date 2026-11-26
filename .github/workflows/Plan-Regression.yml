@@ -18,21 +18,24 @@ permissions:
   packages: read
   pull-requests: read
 
+# The caller holds the target environment's concurrency group until both jobs finish.
+defaults:
+  run:
+    shell: pwsh
+
 env:
   NUGET_RESTORE_MSBUILD_ARGS: /p:Configuration=Release
+  PACKAGE_VERSION: ${{ inputs.package-version }}
+  TEST_PROJECT: DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj
+  TEST_ASSEMBLY: DevPack.Tests/bin/Release/net48/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.dll
 
 jobs:
-  deploy_and_test:
-    name: Deploy and Run Integration Tests
-    # The caller holds the selected environment's concurrency group until this job finishes.
+  deploy:
+    name: Deploy to ${{ inputs.target-environment }}
     environment: ${{ inputs.target-environment }}
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: pwsh
-    env:
-      PACKAGE_VERSION: ${{ inputs.package-version }}
-      TEST_ASSEMBLY: DevPack.Tests/bin/Release/net48/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.dll
+    outputs:
+      deployment_attempt: ${{ steps.deploy.outputs.attempt }}
 
     steps:
       - name: Checkout
@@ -41,7 +44,7 @@ jobs:
           ref: ${{ inputs.source-sha }}
           persist-credentials: false
 
-      - name: Validate fallback environment
+      - name: Validate legacy environment
         env:
           DATAMINER_HOST: ${{ vars.DATAMINER_HOST }}
           DATAMINER_USERNAME: ${{ secrets.DATAMINER_USERNAME }}
@@ -51,7 +54,7 @@ jobs:
         run: |
           foreach ($name in 'DATAMINER_HOST', 'DATAMINER_USERNAME', 'DATAMINER_PASSWORD', 'DATAMINER_TOKEN', 'SKYLINE__SDK__DATAMINERTOKEN') {
             if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
-              throw "Required fallback setting '$name' is missing for the selected environment."
+              throw "Required legacy setting '$name' is missing for the selected environment."
             }
           }
 
@@ -72,17 +75,17 @@ jobs:
           dotnet tool install --global Skyline.DataMiner.CICD.Tools.CatalogUpload --version 4.4.2 --add-source https://api.nuget.org/v3/index.json
           exit $LASTEXITCODE
 
-      - name: Build regression package and tests
+      - name: Build Package
         id: package
         env:
           Configuration: Release
           skyline__sdk__dataminertoken: ${{ secrets.SKYLINE__SDK__DATAMINERTOKEN }}
         run: |
-          dotnet restore 'DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj' -p:Configuration=Release -p:Version="$env:PACKAGE_VERSION" -p:DefineConstants=CI
+          dotnet restore "$env:TEST_PROJECT" -p:Configuration=Release -p:Version="$env:PACKAGE_VERSION" -p:DefineConstants=CI
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           # Build the same installer and Catalog references as QAOps without the test pipeline.
-          # The standalone package build also builds the test assembly from this checkout.
+          # The standalone package build also builds the tests and stages the source DevPack for the installer.
           dotnet build 'QAOpsPackage/QAOpsPackage.csproj' -c Release -p:Version="$env:PACKAGE_VERSION" -p:DefineConstants=CI -p:DataMinerType=Package "-p:QAOpsHarvestingOutput=$env:RUNNER_TEMP/TestHarvesting/"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -129,6 +132,7 @@ jobs:
             }
 
       - name: Volatile upload and deploy regression package
+        id: deploy
         env:
           DATAMINER_TOKEN: ${{ secrets.DATAMINER_TOKEN }}
           APPLICATION_PACKAGE: ${{ steps.package.outputs.path }}
@@ -137,6 +141,45 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or -not $artifact) { throw 'Volatile upload failed' }
           & dataminer-package-deploy from-volatile --artifact-id ($artifact -join "`n") --dm-system-token "$env:DATAMINER_TOKEN"
           if ($LASTEXITCODE -ne 0) { throw "Volatile deployment failed with exit code $LASTEXITCODE" }
+          "attempt=$env:GITHUB_RUN_ATTEMPT" >> $env:GITHUB_OUTPUT
+
+  integration_tests:
+    name: Integration Test
+    needs: deploy
+    environment: ${{ inputs.target-environment }}
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Verify deployment is from this attempt
+        env:
+          DEPLOYMENT_ATTEMPT: ${{ needs.deploy.outputs.deployment_attempt }}
+        run: |
+          # GitHub can reuse a successful deploy job on a partial rerun, after a newer run may have deployed.
+          if ($env:DEPLOYMENT_ATTEMPT -ne $env:GITHUB_RUN_ATTEMPT) {
+            throw 'Deployment is from a previous attempt. Re-run all jobs to deploy the same commit before testing.'
+          }
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.source-sha }}
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Configure GitHub NuGet Source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name github --username USERNAME --password "$env:GH_TOKEN" --store-password-in-clear-text
+
+      - name: Restore and Build Integration Tests
+        run: dotnet build "$env:TEST_PROJECT" -c Release -p:Version="$env:PACKAGE_VERSION" -p:DefineConstants=CI "-p:QAOpsHarvestingOutput=$env:RUNNER_TEMP/TestHarvesting/"
 
       - name: Run Integration Tests
         env:
@@ -148,15 +191,24 @@ jobs:
           DATAMINER_USERNAME: ${{ secrets.DATAMINER_USERNAME }}
           DATAMINER_PASSWORD: ${{ secrets.DATAMINER_PASSWORD }}
         run: |
+          foreach ($name in 'DATAMINER_HOST', 'DATAMINER_USERNAME', 'DATAMINER_PASSWORD') {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Required legacy setting '$name' is missing for the selected environment."
+            }
+          }
+          if (-not (Test-Path -LiteralPath $env:TEST_ASSEMBLY -PathType Leaf)) {
+            throw "Test assembly not found: $env:TEST_ASSEMBLY"
+          }
           dotnet vstest "$env:TEST_ASSEMBLY" /Settings:DevPack.Tests.runsettings /Parallel '/Logger:trx;LogFileName=results.trx' `
             "/ResultsDirectory:$env:RUNNER_TEMP/plan-integration-results" -- MSTest.Parallelize.Workers=2 MSTest.Parallelize.Scope=MethodLevel RunConfiguration.TreatNoTestsAsError=true
           if ($LASTEXITCODE -ne 0) { throw "Integration tests failed with exit code $LASTEXITCODE" }
 
-      - name: Upload fallback test results
+      - name: Upload legacy test results
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: fallback-results
+          name: legacy-results
           path: ${{ runner.temp }}/plan-integration-results/*.trx
           if-no-files-found: ignore
           retention-days: 14
+          overwrite: true
