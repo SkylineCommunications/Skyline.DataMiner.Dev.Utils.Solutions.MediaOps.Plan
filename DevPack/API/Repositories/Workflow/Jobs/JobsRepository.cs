@@ -851,29 +851,19 @@
 			return Read(new TRUEFilterElement<Job>());
 		}
 
-		public IEnumerable<SDM.PartialObject<Job>> ReadPartial(SDM.IPartialFilterElement<Job> partialFilter)
+		public IEnumerable<SDM.PartialObject<Job>> ReadPartial(SDM.IPartialQuery<Job> query)
 		{
-			return partialReader.ReadPartial(partialFilter);
+			return partialReader.ReadPartial(query);
 		}
 
-		public IEnumerable<SDM.PartialObject<Job>> ReadPartial(SDM.IPartialQuery<Job> partialQuery)
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialQuery<Job> query)
 		{
-			return partialReader.ReadPartial(partialQuery);
+			return partialReader.ReadPartialPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
-		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialFilterElement<Job> partialFilter)
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialQuery<Job> query, int pageSize)
 		{
-			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialQuery<Job> partialQuery)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialQuery<Job> partialQuery, int pageSize)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, pageSize);
+			return partialReader.ReadPartialPaged(query, pageSize);
 		}
 
 		public Job Read(Guid id)

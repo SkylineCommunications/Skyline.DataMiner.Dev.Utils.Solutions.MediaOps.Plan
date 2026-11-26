@@ -116,9 +116,9 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		{
 			foreach (var (expectedObjects, query) in JobQueryTestCases.Concat(JobLimitedQueryTestCases))
 			{
-				var partialJobs = TestContext.Api.Jobs.ReadPartial(query.WithFields(JobExposers.Name)).ToList();
+				var partialJobs = TestContext.Api.Jobs.ReadPartial(SelectIdAndName(query)).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialJobs.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialJobs.Select(x => x.GetValue(JobExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialJobs.Select(x => x.GetValue(JobExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -128,11 +128,11 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		{
 			foreach (var (expectedObjects, query) in JobQueryTestCases.Concat(JobLimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.Jobs.ReadPartialPaged(query.WithFields(JobExposers.Name)).ToList();
+				var pages = TestContext.Api.Jobs.ReadPartialPaged(SelectIdAndName(query)).ToList();
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(JobExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(JobExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -140,13 +140,11 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		[TestMethod]
 		public void ReadPartialPagedJobsWithQuery_CustomPageSize_SplitsJobsOverPages()
 		{
-			var repository = (JobsRepository)TestContext.Api.Jobs;
-
 			foreach (var (expectedObjects, query) in JobQueryTestCases.Concat(JobLimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(JobExposers.Name), 2).ToList();
+				var pages = TestContext.Api.Jobs.ReadPartialPaged(SelectIdAndName(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(JobExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -158,55 +156,60 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		[TestMethod]
 		public void ReadPartialPagedJobsWithFilter_ReturnsAllJobs()
 		{
-			var pages = TestContext.Api.Jobs.ReadPartialPaged(JobFilter.WithFields(JobExposers.Name, JobExposers.Resources)).ToList();
+			var partialQuery = new PartialQuery<Job>(JobFilter.ToQuery())
+				.Include(JobExposers.Id)
+				.Include(JobExposers.Name)
+				.Include(JobExposers.ResourcesCollection);
+
+			var pages = TestContext.Api.Jobs.ReadPartialPaged(partialQuery).ToList();
 			var jobsById = TestContext.Api.Jobs.Read(JobFilter).ToDictionary(x => x.Id);
 
 			Assert.AreEqual(1, pages.Count);
-			CollectionAssert.AreEquivalent(jobsById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+			CollectionAssert.AreEquivalent(jobsById.Keys.ToList(), pages[0].Select(x => x.GetValue(JobExposers.Id)).ToList());
 
 			foreach (var partialJob in pages[0])
 			{
-				var job = jobsById[partialJob.Id];
+				var job = jobsById[partialJob.GetValue(JobExposers.Id)];
 				Assert.AreEqual(job.Name, partialJob.GetValue(JobExposers.Name));
-				CollectionAssert.AreEqual(job.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId).ToList(), partialJob.GetValues(JobExposers.Resources).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId).ToList(), partialJob.GetValues(JobExposers.ResourcesCollection).ToList(), job.Name);
 			}
 		}
 
 		[TestMethod]
 		public void ReadPartialJobsWithFilter_ReturnsSameValuesAsFullRead()
 		{
-			var partialFilter = JobFilter.WithFields(
-				JobExposers.Id,
-				JobExposers.Name,
-				JobExposers.Key,
-				JobExposers.Description,
-				JobExposers.Notes,
-				JobExposers.JobTypeCategoryId,
-				JobExposers.Start,
-				JobExposers.End,
-				JobExposers.PreRollStart,
-				JobExposers.PostRollEnd,
-				JobExposers.Duration,
-				JobExposers.RecurringJobId,
-				JobExposers.ActionRequired,
-				JobExposers.Priority,
-				JobExposers.State,
-				JobExposers.ConfigurationState,
-				JobExposers.OrganizationId,
-				JobExposers.OwnerId,
-				JobExposers.HasError,
-				JobExposers.Errors.Code,
-				JobExposers.Errors.Message,
-				JobExposers.Resources,
-				JobExposers.ResourcePools,
-				JobExposers.Nodes.ConfigurationState,
-				JobExposers.Capabilities.CapabilityId,
-				JobExposers.Capabilities.Discretes,
-				JobExposers.Capacities.CapacityId,
-				JobExposers.Configurations.ConfigurationId,
-				JobExposers.Properties.PropertyId);
+			var partialQuery = new PartialQuery<Job>(JobFilter.ToQuery())
+				.Include(JobExposers.Id)
+				.Include(JobExposers.Name)
+				.Include(JobExposers.Key)
+				.Include(JobExposers.Description)
+				.Include(JobExposers.Notes)
+				.Include(JobExposers.JobTypeCategoryId)
+				.Include(JobExposers.Start)
+				.Include(JobExposers.End)
+				.Include(JobExposers.PreRollStart)
+				.Include(JobExposers.PostRollEnd)
+				.Include(JobExposers.Duration)
+				.Include(JobExposers.RecurringJobId)
+				.Include(JobExposers.ActionRequired)
+				.Include(JobExposers.Priority)
+				.Include(JobExposers.State)
+				.Include(JobExposers.ConfigurationState)
+				.Include(JobExposers.OrganizationId)
+				.Include(JobExposers.OwnerId)
+				.Include(JobExposers.HasError)
+				.Include(JobExposers.Errors.CodeCollection)
+				.Include(JobExposers.Errors.MessageCollection)
+				.Include(JobExposers.ResourcesCollection)
+				.Include(JobExposers.ResourcePoolsCollection)
+				.Include(JobExposers.Nodes.ConfigurationStateCollection)
+				.Include(JobExposers.Capabilities.CapabilityIdCollection)
+				.Include(JobExposers.Capabilities.DiscretesCollection)
+				.Include(JobExposers.Capacities.CapacityIdCollection)
+				.Include(JobExposers.Configurations.ConfigurationIdCollection)
+				.Include(JobExposers.Properties.PropertyIdCollection);
 
-			var partialJobsById = TestContext.Api.Jobs.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialJobsById = TestContext.Api.Jobs.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(JobExposers.Id));
 			var jobs = TestContext.Api.Jobs.Read(JobFilter).ToList();
 
 			Assert.AreEqual(jobs.Count, partialJobsById.Count);
@@ -215,7 +218,6 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 			{
 				var partialJob = partialJobsById[job.Id];
 
-				Assert.AreEqual(job.Id, partialJob.GetValue(JobExposers.Id));
 				Assert.AreEqual(job.Name, partialJob.GetValue(JobExposers.Name));
 				Assert.AreEqual(job.Key, partialJob.GetValue(JobExposers.Key));
 				Assert.AreEqual(job.Description, partialJob.GetValue(JobExposers.Description));
@@ -236,16 +238,16 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 				Assert.AreEqual(job.OwnerId, partialJob.GetValue(JobExposers.OwnerId));
 
 				Assert.AreEqual(job.Errors.Count > 0, partialJob.GetValue(JobExposers.HasError));
-				CollectionAssert.AreEqual(job.Errors.Select(x => x.Code).ToList(), partialJob.GetValues(JobExposers.Errors.Code).ToList(), job.Name);
-				CollectionAssert.AreEqual(job.Errors.Select(x => x.Message).Where(x => x != null).ToList(), partialJob.GetValues(JobExposers.Errors.Message).ToList(), job.Name);
-				CollectionAssert.AreEqual(job.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId).ToList(), partialJob.GetValues(JobExposers.Resources).ToList(), job.Name);
-				CollectionAssert.AreEqual(job.NodeGraph.Nodes.Select(GetResourcePoolId).Where(x => x != Guid.Empty).ToList(), partialJob.GetValues(JobExposers.ResourcePools).ToList(), job.Name);
-				CollectionAssert.AreEqual(job.NodeGraph.Nodes.Select(x => x.ConfigurationState).ToList(), partialJob.GetValues(JobExposers.Nodes.ConfigurationState).ToList(), job.Name);
-				CollectionAssert.AreEqual(job.OrchestrationSettings.Capabilities.Select(x => x.Id).ToList(), partialJob.GetValues(JobExposers.Capabilities.CapabilityId).ToList(), job.Name);
-				CollectionAssert.AreEqual(job.OrchestrationSettings.Capabilities.Select(x => x.Value).Where(x => x != null).ToList(), partialJob.GetValues(JobExposers.Capabilities.Discretes).ToList(), job.Name);
-				CollectionAssert.AreEqual(job.OrchestrationSettings.Capacities.Select(x => x.Id).ToList(), partialJob.GetValues(JobExposers.Capacities.CapacityId).ToList(), job.Name);
-				CollectionAssert.AreEqual(job.OrchestrationSettings.Configurations.Select(x => x.Id).ToList(), partialJob.GetValues(JobExposers.Configurations.ConfigurationId).ToList(), job.Name);
-				CollectionAssert.AreEqual(job.PropertySettings.Select(x => x.Id).ToList(), partialJob.GetValues(JobExposers.Properties.PropertyId).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.Errors.Select(x => x.Code).ToList(), partialJob.GetValues(JobExposers.Errors.CodeCollection).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.Errors.Select(x => x.Message).Where(x => x != null).ToList(), partialJob.GetValues(JobExposers.Errors.MessageCollection).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId).ToList(), partialJob.GetValues(JobExposers.ResourcesCollection).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.NodeGraph.Nodes.Select(GetResourcePoolId).Where(x => x != Guid.Empty).ToList(), partialJob.GetValues(JobExposers.ResourcePoolsCollection).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.NodeGraph.Nodes.Select(x => x.ConfigurationState).ToList(), partialJob.GetValues(JobExposers.Nodes.ConfigurationStateCollection).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.OrchestrationSettings.Capabilities.Select(x => x.Id).ToList(), partialJob.GetValues(JobExposers.Capabilities.CapabilityIdCollection).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.OrchestrationSettings.Capabilities.Select(x => x.Value).Where(x => x != null).ToList(), partialJob.GetValues(JobExposers.Capabilities.DiscretesCollection).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.OrchestrationSettings.Capacities.Select(x => x.Id).ToList(), partialJob.GetValues(JobExposers.Capacities.CapacityIdCollection).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.OrchestrationSettings.Configurations.Select(x => x.Id).ToList(), partialJob.GetValues(JobExposers.Configurations.ConfigurationIdCollection).ToList(), job.Name);
+				CollectionAssert.AreEqual(job.PropertySettings.Select(x => x.Id).ToList(), partialJob.GetValues(JobExposers.Properties.PropertyIdCollection).ToList(), job.Name);
 			}
 
 			// The setup must cover the multi-section and external fields, otherwise the comparison above proves little.
@@ -260,7 +262,12 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		{
 			var unknownField = new Exposer<Job, string>(x => x.Name, "Unknown");
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Jobs.ReadPartial(JobFilter.WithFields(unknownField)));
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Jobs.ReadPartial(new PartialQuery<Job>(JobFilter.ToQuery()).Include(unknownField)));
+		}
+
+		private static IPartialQuery<Job> SelectIdAndName(IQuery<Job> query)
+		{
+			return new PartialQuery<Job>(query).Include(JobExposers.Id).Include(JobExposers.Name);
 		}
 
 		private static Guid GetResourcePoolId(JobNode node)
