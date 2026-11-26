@@ -75,6 +75,8 @@
 
 		public static bool IsQaOps { get; private set; }
 
+		internal static bool IsLegacyRcRun => String.Equals(Environment.GetEnvironmentVariable("MEDIAOPS_PLAN_LEGACY_RC_RUN"), "true", StringComparison.Ordinal);
+
 		public static Config Load()
 		{
 			var builder = new ConfigurationBuilder()

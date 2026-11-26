@@ -79,7 +79,9 @@ Use the exact lowercase values `true` and `false`. A missing or invalid value fa
 
 Both paths use Windows and .NET 10 to build from the approved PR head or the commit that triggered the run. The package version comes from the tag for a tag push and is `0.1.<run number>` otherwise. Approval-triggered runs recheck the live PR head, target, and review before submission or deployment. Both paths share the queue for the selected GitHub environment through the end of testing. The **Integration Tests** check reports the selected path, commit, version, environment, and results and passes only when that path succeeds.
 
-Both paths require DataMiner 10.6.11 or later and use the same [installer](./QAOpsPackage/README.md#execution-and-package-contents). It installs the Catalog packages for Standard Data Model Registration, Categories, and MediaOps Plan, then reconciles the four Plan-owned DOM modules using the DevPack built from the selected commit and creates any missing shared test fixtures. On a persistent fallback target, reconciliation can soft-delete fields or section links removed from the source and does not roll back automatically. In both paths, the tests that require the `Generic Camera` connector report inconclusive if it is absent. If the connector is present, its Production version and any required active function must be available.
+Both paths require DataMiner 10.6.11 or later and use the same [installer](./QAOpsPackage/README.md#execution-and-package-contents). It installs the Catalog packages for Standard Data Model Registration, Categories, and MediaOps Plan, then reconciles the four Plan-owned DOM modules using the DevPack built from the selected commit and creates any missing shared test fixtures. On a persistent fallback target, reconciliation can soft-delete fields or section links removed from the source and does not roll back automatically.
+
+If the `Generic Camera` connector is absent, the affected tests report inconclusive on QAOps and on fallback runs targeting `MediaOps RC`. On other fallback targets, including `MediaOps RT`, a missing connector fails those tests. If the connector is present, its Production version and any required active function must be available.
 
 ### Integration variables and secrets
 
@@ -97,7 +99,7 @@ Set `USE_QAOPS` at repository scope. Configure target-specific settings on each 
 | Fallback | Environment secrets | `DATAMINER_USERNAME`, `DATAMINER_PASSWORD` | Account with permission to run the suite and manage its test data. |
 | Fallback | Environment secret | `DATAMINER_TOKEN` | DataMiner System key for volatile upload and deployment. The key must target the same System as `DATAMINER_HOST`. |
 
-The fallback workflow sets `CRED_PREFIX=DATAMINER` and `MEDIAOPS_PLAN_USE_REAL_DMA=true` for the direct test run.
+The fallback workflow sets `CRED_PREFIX=DATAMINER` and `MEDIAOPS_PLAN_USE_REAL_DMA=true` for the direct test run. It sets `MEDIAOPS_PLAN_LEGACY_RC_RUN=true` only when the selected environment is `MediaOps RC`.
 
 ## Local test setup
 

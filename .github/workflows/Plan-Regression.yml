@@ -142,6 +142,7 @@ jobs:
         env:
           CRED_PREFIX: DATAMINER
           MEDIAOPS_PLAN_USE_REAL_DMA: 'true'
+          MEDIAOPS_PLAN_LEGACY_RC_RUN: ${{ inputs.target-environment == 'MediaOps RC' && 'true' || 'false' }}
           DATAMINER_HOST: ${{ vars.DATAMINER_HOST }}
           DATAMINER_DOMAIN: ${{ vars.DATAMINER_DOMAIN }}
           DATAMINER_USERNAME: ${{ secrets.DATAMINER_USERNAME }}
