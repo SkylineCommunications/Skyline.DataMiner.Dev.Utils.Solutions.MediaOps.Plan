@@ -94,6 +94,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       regression_environment: ${{ steps.regression_environment.outputs.environment }}
+      integration_backend: ${{ steps.regression_environment.outputs.backend }}
+      integration_required: >-
+        ${{ (github.event_name == 'push' && github.ref_type == 'tag' && !contains(github.ref_name, '-alpha')) ||
+            github.event_name == 'workflow_dispatch' ||
+            (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' &&
+             !github.event.pull_request.draft && github.event.review.commit_id == github.event.pull_request.head.sha &&
+             steps.regression_environment.outputs.environment != '' &&
+             github.event.pull_request.head.repo.full_name == github.repository) }}
 
     steps:
       - name: Skip tag/branch validation
@@ -142,12 +150,13 @@ jobs:
             exit 1
           fi
 
-      - name: Select regression environment
+      - name: Select regression environment and backend
         id: regression_environment
         shell: bash
         env:
           TARGET_ENV: ${{ inputs.target_env }}
           PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          USE_QAOPS: ${{ vars.USE_QAOPS }}
         run: |
           environment=""
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
@@ -162,6 +171,14 @@ jobs:
             fi
           fi
           echo "environment=$environment" >> "$GITHUB_OUTPUT"
+
+          # Snapshot the repository switch once. Invalid values fail only the integration gate.
+          case "$USE_QAOPS" in
+            true) backend="qaops" ;;
+            false) backend="fallback" ;;
+            *) backend="invalid" ;;
+          esac
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
 
   nuget_validation:
     name: Validate NuGets
@@ -184,16 +201,12 @@ jobs:
       - name: Run dotnet consolidate
         run: dotnet consolidate -s 'MediaOps Plan.slnx'
 
-  integration_tests:
-    name: Integration Tests
+  qaops_integration_tests:
+    name: QAOps Integration Tests
     if: >-
       ${{ !cancelled() && needs.unit_tests.result == 'success' &&
-          ((github.event_name == 'push' && github.ref_type == 'tag' && !contains(github.ref_name, '-alpha')) ||
-          github.event_name == 'workflow_dispatch' ||
-          (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' &&
-           !github.event.pull_request.draft && github.event.review.commit_id == github.event.pull_request.head.sha &&
-           needs.tag_branch_validation.outputs.regression_environment != '' &&
-           github.event.pull_request.head.repo.full_name == github.repository)) }}
+          needs.tag_branch_validation.outputs.integration_required == 'true' &&
+          needs.tag_branch_validation.outputs.integration_backend == 'qaops' }}
     needs: [unit_tests, tag_branch_validation]
     permissions:
       contents: read
@@ -338,6 +351,72 @@ jobs:
           path: ${{ runner.temp }}/qaops-results.json
           if-no-files-found: ignore
           retention-days: 14
+
+  fallback_integration_tests:
+    name: Fallback Integration Tests
+    needs: [unit_tests, tag_branch_validation]
+    if: >-
+      ${{ !cancelled() && needs.unit_tests.result == 'success' &&
+          needs.tag_branch_validation.outputs.integration_required == 'true' &&
+          needs.tag_branch_validation.outputs.integration_backend == 'fallback' }}
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+    # Keep the target locked from deployment through the end of testing.
+    concurrency:
+      group: >-
+        ${{ needs.tag_branch_validation.outputs.regression_environment == 'MediaOps RT' &&
+            'mediaops-rt-regression' || format('mediaops-regression-{0}',
+              needs.tag_branch_validation.outputs.regression_environment) }}
+      cancel-in-progress: false
+      queue: max
+    uses: ./.github/workflows/Plan-Regression.yml
+    with:
+      source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      package-version: ${{ github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name || format('0.1.{0}', github.run_number) }}
+      target-environment: ${{ needs.tag_branch_validation.outputs.regression_environment }}
+    secrets: inherit
+
+  integration_tests:
+    name: Integration Tests
+    needs: [unit_tests, tag_branch_validation, qaops_integration_tests, fallback_integration_tests]
+    # The unused path is skipped. This bounded gate can report cancellation or failure of the selected path.
+    if: >-
+      ${{ always() && needs.unit_tests.result == 'success' &&
+          needs.tag_branch_validation.outputs.integration_required == 'true' }}
+    permissions: {}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Verify selected integration backend succeeded
+        shell: bash
+        env:
+          BACKEND: ${{ needs.tag_branch_validation.outputs.integration_backend }}
+          QAOPS_RESULT: ${{ needs.qaops_integration_tests.result }}
+          FALLBACK_RESULT: ${{ needs.fallback_integration_tests.result }}
+          TARGET_ENV: ${{ needs.tag_branch_validation.outputs.regression_environment }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PACKAGE_VERSION: ${{ github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name || format('0.1.{0}', github.run_number) }}
+        run: |
+          {
+            echo '### Integration Tests'
+            printf '%s\n' "- Backend: $BACKEND" "- Target: $TARGET_ENV" "- Source SHA: $SOURCE_SHA" \
+              "- Package version: $PACKAGE_VERSION" "- QAOps result: $QAOPS_RESULT" "- Fallback result: $FALLBACK_RESULT"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          case "$BACKEND" in
+            qaops) selected="$QAOPS_RESULT"; unused="$FALLBACK_RESULT" ;;
+            fallback) selected="$FALLBACK_RESULT"; unused="$QAOPS_RESULT" ;;
+            *)
+              echo "::error::Set the repository variable USE_QAOPS to exactly 'true' or 'false'. Neither integration backend was started."
+              exit 1
+              ;;
+          esac
+          if [[ "$selected" != 'success' || "$unused" != 'skipped' ]]; then
+            echo "::error::Integration backend '$BACKEND' returned '$selected'; the unused backend returned '$unused'."
+            exit 1
+          fi
 
   skyline_cicd:
     name: Skyline CICD

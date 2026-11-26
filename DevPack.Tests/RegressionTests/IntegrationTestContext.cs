@@ -122,6 +122,9 @@
 		/// </summary>
 		public bool UseRealDma => config.UseRealDma;
 
+		internal bool IsCiIntegrationRun => Config.IsQaOps ||
+			(UseRealDma && String.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true", StringComparison.Ordinal));
+
 		public IMediaOpsPlanApi Api => Helpers.Api;
 
 		public IDms Dms => Helpers.Dms;
