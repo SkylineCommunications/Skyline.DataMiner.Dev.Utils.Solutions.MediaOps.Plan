@@ -17,7 +17,7 @@
 		<PackageVersion Include="Skyline.DataMiner.Dev.Automation" Version="10.6.9.1" />
 		<PackageVersion Include="Skyline.DataMiner.Dev.Common" Version="10.6.9.1" />
 		<PackageVersion Include="Skyline.DataMiner.Dev.Protocol" Version="10.6.9.1" />
-		<PackageVersion Include="Skyline.DataMiner.Dev.Utils.SDM.Abstractions" Version="1.1.0-partial02" />
+		<PackageVersion Include="Skyline.DataMiner.Dev.Utils.SDM.Abstractions" Version="1.1.0-partial03" />
 		<PackageVersion Include="Skyline.DataMiner.Dev.Utils.Solutions.Categories" Version="$(CategoriesDevPackVersion)" />
 		<PackageVersion Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Live" Version="$(MediaOpsLiveDevPackVersion)" />
 		<PackageVersion Include="Skyline.DataMiner.SDM.Registration.Common" Version="2.1.3" />

@@ -44,11 +44,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void CreateSelectedFields_FilterListExposerOrWrongExposerType_ThrowsNotSupportedException()
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
 		{
-			// List fields can only be selected with their collection exposer, a dynamic list exposer can't hold the values.
-			Assert.ThrowsException<NotSupportedException>(() => JobPartialFieldMapper.CreateSelectedFields(new FieldExposer[] { JobExposers.Resources }));
-
 			var nameWithWrongType = new Exposer<Job, int>(x => x.Name.Length, JobExposers.Name.fieldName);
 			Assert.ThrowsException<NotSupportedException>(() => JobPartialFieldMapper.CreateSelectedFields(new[] { nameWithWrongType }));
 		}
@@ -68,7 +65,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		[TestMethod]
 		public void CreateSelectedFields_MultiSectionAndExternalFields_SelectTheFieldsTheyAreCombinedFrom()
 		{
-			var selectedFields = JobPartialFieldMapper.CreateSelectedFields(new FieldExposer[] { JobExposers.ResourcePoolsCollection, JobExposers.Errors.MessageCollection, JobExposers.Capabilities.CapabilityIdCollection });
+			var selectedFields = JobPartialFieldMapper.CreateSelectedFields(new FieldExposer[] { JobExposers.ResourcePools, JobExposers.Errors.Message, JobExposers.Capabilities.CapabilityId });
 
 			CollectionAssert.AreEquivalent(
 				new[]
@@ -165,13 +162,13 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 					(int)SlcWorkflowIds.Enums.Nodeconfigurationstatus.MandatoryValuesMissing,
 					(int)SlcWorkflowIds.Enums.Nodeconfigurationstatus.NoParametersDefined));
 
-			var partialJob = CreatePartialJob(domPartialObject, JobExposers.ResourcesCollection, JobExposers.ResourcePoolsCollection, JobExposers.Nodes.ConfigurationStateCollection);
+			var partialJob = CreatePartialJob(domPartialObject, JobExposers.Resources, JobExposers.ResourcePools, JobExposers.Nodes.ConfigurationState);
 
-			CollectionAssert.AreEqual(new[] { resourceId }, partialJob.GetValues(JobExposers.ResourcesCollection).ToList());
-			CollectionAssert.AreEqual(new[] { poolId, poolId, otherPoolId }, partialJob.GetValues(JobExposers.ResourcePoolsCollection).ToList());
+			CollectionAssert.AreEqual(new[] { resourceId }, partialJob.GetValues(JobExposers.Resources).ToList());
+			CollectionAssert.AreEqual(new[] { poolId, poolId, otherPoolId }, partialJob.GetValues(JobExposers.ResourcePools).ToList());
 			CollectionAssert.AreEqual(
 				new[] { ConfigurationState.AllValuesProvided, ConfigurationState.MandatoryValuesMissing, ConfigurationState.NoParametersDefined },
-				partialJob.GetValues(JobExposers.Nodes.ConfigurationStateCollection).ToList());
+				partialJob.GetValues(JobExposers.Nodes.ConfigurationState).ToList());
 		}
 
 		[TestMethod]
@@ -183,11 +180,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Fields(SlcWorkflowIds.Sections.Errors.ErrorCode, "A", "B", " ", "A"),
 				Fields(SlcWorkflowIds.Sections.Errors.ErrorMessage, "First A", "B", "Ignored", "Second A"));
 
-			var partialJob = CreatePartialJob(domPartialObject, JobExposers.HasError, JobExposers.Errors.CodeCollection, JobExposers.Errors.MessageCollection);
+			var partialJob = CreatePartialJob(domPartialObject, JobExposers.HasError, JobExposers.Errors.Code, JobExposers.Errors.Message);
 
 			Assert.IsTrue(partialJob.GetValue(JobExposers.HasError));
-			CollectionAssert.AreEqual(new[] { "A", "B" }, partialJob.GetValues(JobExposers.Errors.CodeCollection).ToList());
-			CollectionAssert.AreEqual(new[] { "Second A", "B" }, partialJob.GetValues(JobExposers.Errors.MessageCollection).ToList());
+			CollectionAssert.AreEqual(new[] { "A", "B" }, partialJob.GetValues(JobExposers.Errors.Code).ToList());
+			CollectionAssert.AreEqual(new[] { "Second A", "B" }, partialJob.GetValues(JobExposers.Errors.Message).ToList());
 		}
 
 		[TestMethod]
@@ -199,19 +196,19 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Fields(SlcWorkflowIds.Sections.Nodes.NodeType, (int)Nodetype.ResourcePool, (int)Nodetype.ResourcePool),
 				Fields(SlcWorkflowIds.Sections.Nodes.NodeConfigurationStatus, (int)SlcWorkflowIds.Enums.Nodeconfigurationstatus.AllValuesProvided));
 
-			var exception = Assert.ThrowsException<InvalidOperationException>(() => CreatePartialJob(domPartialObject, JobExposers.Nodes.ConfigurationStateCollection));
+			var exception = Assert.ThrowsException<InvalidOperationException>(() => CreatePartialJob(domPartialObject, JobExposers.Nodes.ConfigurationState));
 			StringAssert.Contains(exception.Message, "stored outside the job DOM instance");
 		}
 
 		[TestMethod]
 		public void CreatePartialJob_NoErrorsOrNodes_ReturnsNoValues()
 		{
-			var partialJob = CreatePartialJob(CreateDomPartialObject(Guid.NewGuid()), JobExposers.HasError, JobExposers.Errors.CodeCollection, JobExposers.ResourcesCollection, JobExposers.Nodes.ConfigurationStateCollection);
+			var partialJob = CreatePartialJob(CreateDomPartialObject(Guid.NewGuid()), JobExposers.HasError, JobExposers.Errors.Code, JobExposers.Resources, JobExposers.Nodes.ConfigurationState);
 
 			Assert.IsFalse(partialJob.GetValue(JobExposers.HasError));
-			Assert.AreEqual(0, partialJob.GetValues(JobExposers.Errors.CodeCollection).Count());
-			Assert.AreEqual(0, partialJob.GetValues(JobExposers.ResourcesCollection).Count());
-			Assert.AreEqual(0, partialJob.GetValues(JobExposers.Nodes.ConfigurationStateCollection).Count());
+			Assert.AreEqual(0, partialJob.GetValues(JobExposers.Errors.Code).Count());
+			Assert.AreEqual(0, partialJob.GetValues(JobExposers.Resources).Count());
+			Assert.AreEqual(0, partialJob.GetValues(JobExposers.Nodes.ConfigurationState).Count());
 		}
 
 		private static Skyline.DataMiner.SDM.PartialObject<Job> CreatePartialJob(PartialObject<DomInstance, DomInstanceId> domPartialObject, params FieldExposer[] fields)

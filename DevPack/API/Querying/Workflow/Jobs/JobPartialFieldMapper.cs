@@ -53,22 +53,22 @@
 			[JobExposers.OwnerId.fieldName] = PartialField.Single(x => ReadGuid(x, SlcWorkflowIds.Sections.CostingAndBilling.JobOwner), SlcWorkflowIds.Sections.CostingAndBilling.JobOwner),
 
 			[JobExposers.HasError.fieldName] = PartialField.Scalar(x => x.GetErrors(includeMessages: false).Count > 0, false, Errors.ErrorCode),
-			[JobExposers.Errors.CodeCollection.fieldName] = PartialField.Collection(x => x.GetErrors(includeMessages: false).Select(e => e.Key), Errors.ErrorCode),
-			[JobExposers.Errors.MessageCollection.fieldName] = PartialField.Collection(x => x.GetErrors(includeMessages: true).Select(e => e.Value).Where(m => m != null), Errors.ErrorCode, Errors.ErrorMessage)
+			[JobExposers.Errors.Code.fieldName] = PartialField.Collection(x => x.GetErrors(includeMessages: false).Select(e => e.Key), Errors.ErrorCode),
+			[JobExposers.Errors.Message.fieldName] = PartialField.Collection(x => x.GetErrors(includeMessages: true).Select(e => e.Value).Where(m => m != null), Errors.ErrorCode, Errors.ErrorMessage)
 				.WithCanCombineSections(x => x.CanCombineErrorMessages()),
-			[JobExposers.ResourcesCollection.fieldName] = PartialField.Collection(x => x.GetResourceIds(), Nodes.NodeType, Nodes.NodeReferenceID)
+			[JobExposers.Resources.fieldName] = PartialField.Collection(x => x.GetResourceIds(), Nodes.NodeType, Nodes.NodeReferenceID)
 				.WithCanCombineSections(x => x.CanCombineNodeReferences()),
-			[JobExposers.ResourcePoolsCollection.fieldName] = PartialField.Collection(x => x.GetResourcePoolIds(), Nodes.NodeType, Nodes.NodeReferenceID, Nodes.NodeParentReferenceID)
+			[JobExposers.ResourcePools.fieldName] = PartialField.Collection(x => x.GetResourcePoolIds(), Nodes.NodeType, Nodes.NodeReferenceID, Nodes.NodeParentReferenceID)
 				.WithCanCombineSections(x => x.CanCombineNodeParentReferences()),
-			[JobExposers.Nodes.ConfigurationStateCollection.fieldName] = PartialField.Collection(x => x.GetNodeConfigurationStates(), Nodes.NodeType, Nodes.NodeConfigurationStatus)
+			[JobExposers.Nodes.ConfigurationState.fieldName] = PartialField.Collection(x => x.GetNodeConfigurationStates(), Nodes.NodeType, Nodes.NodeConfigurationStatus)
 				.WithCanCombineSections(x => x.CanCombineNodeConfigurationStates()),
 
-			[JobExposers.Capabilities.CapabilityIdCollection.fieldName] = PartialField.Orchestration(x => x.CapabilityIds),
-			[JobExposers.Capabilities.DiscretesCollection.fieldName] = PartialField.Orchestration(x => x.CapabilityDiscretes),
-			[JobExposers.Capacities.CapacityIdCollection.fieldName] = PartialField.Orchestration(x => x.CapacityIds),
-			[JobExposers.Configurations.ConfigurationIdCollection.fieldName] = PartialField.Orchestration(x => x.ConfigurationIds),
+			[JobExposers.Capabilities.CapabilityId.fieldName] = PartialField.Orchestration(x => x.CapabilityIds),
+			[JobExposers.Capabilities.Discretes.fieldName] = PartialField.Orchestration(x => x.CapabilityDiscretes),
+			[JobExposers.Capacities.CapacityId.fieldName] = PartialField.Orchestration(x => x.CapacityIds),
+			[JobExposers.Configurations.ConfigurationId.fieldName] = PartialField.Orchestration(x => x.ConfigurationIds),
 
-			[JobExposers.Properties.PropertyIdCollection.fieldName] = PartialField.Properties(x => x.PropertyIds),
+			[JobExposers.Properties.PropertyId.fieldName] = PartialField.Properties(x => x.PropertyIds),
 		};
 
 		/// <summary>
@@ -332,8 +332,8 @@
 			public static PartialField Collection<TField>(Func<JobPartialReadContext, IEnumerable<TField>> read, params FieldDescriptorID[] descriptors)
 			{
 				return new PartialField(
-					typeof(Exposer<Job, IEnumerable<TField>>),
-					(builder, exposer, context) => builder.Include((Exposer<Job, IEnumerable<TField>>)exposer, read(context).ToList()),
+					typeof(DynamicListExposer<Job, TField>),
+					(builder, exposer, context) => builder.Include((DynamicListExposer<Job, TField>)exposer, read(context).ToList()),
 					descriptors);
 			}
 
