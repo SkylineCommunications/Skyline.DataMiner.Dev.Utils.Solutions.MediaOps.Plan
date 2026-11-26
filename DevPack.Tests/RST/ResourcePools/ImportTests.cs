@@ -123,7 +123,7 @@
 			var protocols = TestContext.Dms.GetProtocols().Where(p => p.Name == "Generic Camera").ToList();
 			if (protocols.Count == 0)
 			{
-				if (TestContext.IsCiIntegrationRun)
+				if (Config.IsQaOps || Config.IsLegacyRcRun)
 				{
 					Assert.Inconclusive("Connector 'Generic Camera' is not available on the test System.");
 				}
@@ -213,7 +213,7 @@
 			var protocols = TestContext.Dms.GetProtocols().Where(p => p.Name == "Generic Camera").ToList();
 			if (protocols.Count == 0)
 			{
-				if (TestContext.IsCiIntegrationRun)
+				if (Config.IsQaOps || Config.IsLegacyRcRun)
 				{
 					Assert.Inconclusive("Connector 'Generic Camera' is not available on the test System.");
 				}
