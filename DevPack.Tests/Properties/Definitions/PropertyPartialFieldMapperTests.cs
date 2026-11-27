@@ -66,6 +66,14 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var nameWithWrongType = new Exposer<Property, int>(x => x.Name.Length, PropertyExposers.Name.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => PropertyPartialFieldMapper.CreateSelectedFields(new[] { nameWithWrongType }));
+		}
+
+		[TestMethod]
 		public void CreatePartialProperty_EveryPropertyType_ConvertsValuesLikeAFullRead()
 		{
 			foreach (var type in new[] { Propertytype.String, Propertytype.Boolean, Propertytype.Discrete, Propertytype.File })
@@ -85,7 +93,6 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 					},
 					AllFields).Single();
 
-				Assert.AreEqual(id, partialProperty.Id, type);
 				Assert.AreEqual(id, partialProperty.GetValue(PropertyExposers.Id), type);
 				Assert.AreEqual("Name", partialProperty.GetValue(PropertyExposers.Name), type);
 				Assert.AreEqual("global", partialProperty.GetValue(PropertyExposers.Scope), type);
@@ -119,9 +126,10 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 					CreateDomPartialObject(Guid.NewGuid(), Field(PropertyInfo.Name, "Untyped")),
 					CreateDomPartialObject(typedId, Field(PropertyInfo.PropertyType, Propertytype.Boolean), Field(PropertyInfo.Name, "Typed")),
 				},
+				PropertyExposers.Id,
 				PropertyExposers.Name);
 
-			CollectionAssert.AreEqual(new[] { typedId }, partialProperties.Select(x => x.Id).ToList());
+			CollectionAssert.AreEqual(new[] { typedId }, partialProperties.Select(x => x.GetValue(PropertyExposers.Id)).ToList());
 		}
 
 		[TestMethod]

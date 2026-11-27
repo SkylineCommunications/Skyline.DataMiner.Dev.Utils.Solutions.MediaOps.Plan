@@ -174,9 +174,9 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		{
 			foreach (var (expectedObjects, query) in PropertyQueryTestCases.Concat(PropertyLimitedQueryTestCases))
 			{
-				var partialProperties = TestContext.Api.Properties.ReadPartial(query.WithFields(PropertyExposers.Name)).ToList();
+				var partialProperties = TestContext.Api.Properties.ReadPartial(SelectPropertyIdAndName(query)).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialProperties.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialProperties.Select(x => x.GetValue(PropertyExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialProperties.Select(x => x.GetValue(PropertyExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -186,11 +186,11 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		{
 			foreach (var (expectedObjects, query) in PropertyQueryTestCases.Concat(PropertyLimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.Properties.ReadPartialPaged(query.WithFields(PropertyExposers.Order)).ToList();
+				var pages = TestContext.Api.Properties.ReadPartialPaged(new PartialQuery<Property>(query).Include(PropertyExposers.Id).Include(PropertyExposers.Order)).ToList();
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(PropertyExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Order).ToList(), pages[0].Select(x => x.GetValue(PropertyExposers.Order)).ToList(), $"Query: {query}");
 			}
 		}
@@ -198,13 +198,11 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		[TestMethod]
 		public void ReadPartialPagedPropertiesWithQuery_CustomPageSize_SplitsPropertiesOverPages()
 		{
-			var repository = (PropertiesRepository)TestContext.Api.Properties;
-
 			foreach (var (expectedObjects, query) in PropertyQueryTestCases.Concat(PropertyLimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(PropertyExposers.Name), 2).ToList();
+				var pages = TestContext.Api.Properties.ReadPartialPaged(SelectPropertyIdAndName(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(PropertyExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -216,15 +214,20 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		[TestMethod]
 		public void ReadPartialPagedPropertiesWithFilter_ReturnsAllProperties()
 		{
-			var pages = TestContext.Api.Properties.ReadPartialPaged(PropertyFilter.WithFields(PropertyExposers.Scope, PropertyExposers.SectionName)).ToList();
+			var partialQuery = new PartialQuery<Property>(PropertyFilter.ToQuery())
+				.Include(PropertyExposers.Id)
+				.Include(PropertyExposers.Scope)
+				.Include(PropertyExposers.SectionName);
+
+			var pages = TestContext.Api.Properties.ReadPartialPaged(partialQuery).ToList();
 			var propertiesById = TestContext.Api.Properties.Read(PropertyFilter).ToDictionary(x => x.Id);
 
 			Assert.AreEqual(1, pages.Count);
-			CollectionAssert.AreEquivalent(propertiesById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+			CollectionAssert.AreEquivalent(propertiesById.Keys.ToList(), pages[0].Select(x => x.GetValue(PropertyExposers.Id)).ToList());
 
 			foreach (var partialProperty in pages[0])
 			{
-				var property = propertiesById[partialProperty.Id];
+				var property = propertiesById[partialProperty.GetValue(PropertyExposers.Id)];
 				Assert.AreEqual(property.Scope, partialProperty.GetValue(PropertyExposers.Scope));
 				Assert.AreEqual(property.SectionName, partialProperty.GetValue(PropertyExposers.SectionName));
 			}
@@ -242,14 +245,14 @@ namespace RT_MediaOps.Plan.Properties.Querying
 
 			var ids = Setup.Properties.Concat(otherTypes).Select(x => x.Id).ToList();
 			var filter = new ORFilterElement<Property>(ids.Select(x => PropertyExposers.Id.Equal(x)).ToArray());
-			var partialFilter = filter.WithFields(
-				PropertyExposers.Id,
-				PropertyExposers.Name,
-				PropertyExposers.Scope,
-				PropertyExposers.SectionName,
-				PropertyExposers.Order);
+			var partialQuery = new PartialQuery<Property>(filter.ToQuery())
+				.Include(PropertyExposers.Id)
+				.Include(PropertyExposers.Name)
+				.Include(PropertyExposers.Scope)
+				.Include(PropertyExposers.SectionName)
+				.Include(PropertyExposers.Order);
 
-			var partialPropertiesById = TestContext.Api.Properties.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialPropertiesById = TestContext.Api.Properties.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(PropertyExposers.Id));
 			var properties = TestContext.Api.Properties.Read(filter).ToList();
 
 			Assert.AreEqual(ids.Count, properties.Count);
@@ -271,7 +274,7 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		[TestMethod]
 		public void ReadPartialProperties_OnlyId_ReturnsIds()
 		{
-			var partialProperties = TestContext.Api.Properties.ReadPartial(PropertyFilter.WithFields(PropertyExposers.Id)).ToList();
+			var partialProperties = TestContext.Api.Properties.ReadPartial(new PartialQuery<Property>(PropertyFilter.ToQuery()).Include(PropertyExposers.Id)).ToList();
 
 			CollectionAssert.AreEquivalent(Setup.Properties.Select(x => x.Id).ToList(), partialProperties.Select(x => x.GetValue(PropertyExposers.Id)).ToList());
 		}
@@ -281,7 +284,12 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		{
 			var unknownField = new Exposer<Property, string>(x => x.Name, "Unknown");
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Properties.ReadPartial(PropertyFilter.WithFields(unknownField)));
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Properties.ReadPartial(new PartialQuery<Property>(PropertyFilter.ToQuery()).Include(unknownField)));
+		}
+
+		private static IPartialQuery<Property> SelectPropertyIdAndName(IQuery<Property> query)
+		{
+			return new PartialQuery<Property>(query).Include(PropertyExposers.Id).Include(PropertyExposers.Name);
 		}
 
 		[TestMethod]

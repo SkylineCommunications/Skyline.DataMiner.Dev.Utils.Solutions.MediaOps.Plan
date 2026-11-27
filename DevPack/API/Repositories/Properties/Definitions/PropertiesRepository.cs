@@ -374,32 +374,21 @@
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<SDM.PartialObject<Property>> ReadPartial(SDM.IPartialFilterElement<Property> partialFilter)
+		public IEnumerable<SDM.PartialObject<Property>> ReadPartial(SDM.IPartialQuery<Property> query)
 		{
-			return partialReader.ReadPartial(partialFilter);
+			return partialReader.ReadPartial(query);
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<SDM.PartialObject<Property>> ReadPartial(SDM.IPartialQuery<Property> partialQuery)
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Property>>> ReadPartialPaged(SDM.IPartialQuery<Property> query)
 		{
-			return partialReader.ReadPartial(partialQuery);
+			return partialReader.ReadPartialPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Property>>> ReadPartialPaged(SDM.IPartialFilterElement<Property> partialFilter)
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Property>>> ReadPartialPaged(SDM.IPartialQuery<Property> query, int pageSize)
 		{
-			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		/// <inheritdoc/>
-		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Property>>> ReadPartialPaged(SDM.IPartialQuery<Property> partialQuery)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<Property>>> ReadPartialPaged(SDM.IPartialQuery<Property> partialQuery, int pageSize)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, pageSize);
+			return partialReader.ReadPartialPaged(query, pageSize);
 		}
 
 		/// <summary>
