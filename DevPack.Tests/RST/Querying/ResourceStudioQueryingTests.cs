@@ -608,9 +608,9 @@ namespace RT_MediaOps.Plan.RST.Querying
 		{
 			foreach (var (expectedObjects, query) in CapabilityQueryTestCases.Concat(CapabilityLimitedQueryTestCases))
 			{
-				var partialObjects = TestContext.Api.Capabilities.ReadPartial(query.WithFields(CapabilityExposers.Name)).ToList();
+				var partialObjects = TestContext.Api.Capabilities.ReadPartial(SelectCapabilityIdAndName(query)).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialObjects.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialObjects.Select(x => x.GetValue(CapabilityExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialObjects.Select(x => x.GetValue(CapabilityExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -620,11 +620,11 @@ namespace RT_MediaOps.Plan.RST.Querying
 		{
 			foreach (var (expectedObjects, query) in CapabilityQueryTestCases.Concat(CapabilityLimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.Capabilities.ReadPartialPaged(query.WithFields(CapabilityExposers.Name)).ToList();
+				var pages = TestContext.Api.Capabilities.ReadPartialPaged(SelectCapabilityIdAndName(query)).ToList();
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(CapabilityExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(CapabilityExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -632,13 +632,11 @@ namespace RT_MediaOps.Plan.RST.Querying
 		[TestMethod]
 		public void ReadPartialPagedCapabilitiesWithQuery_CustomPageSize_SplitsCapabilitiesOverPages()
 		{
-			var repository = (CapabilitiesRepository)TestContext.Api.Capabilities;
-
 			foreach (var (expectedObjects, query) in CapabilityQueryTestCases.Concat(CapabilityLimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(CapabilityExposers.Name), 2).ToList();
+				var pages = TestContext.Api.Capabilities.ReadPartialPaged(SelectCapabilityIdAndName(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(CapabilityExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -650,16 +648,16 @@ namespace RT_MediaOps.Plan.RST.Querying
 		[TestMethod]
 		public void ReadPartialPagedCapabilitiesWithFilter_ReturnsAllCapabilities()
 		{
-			var pages = TestContext.Api.Capabilities.ReadPartialPaged(CapabilityFilter.WithFields(CapabilityExposers.Name)).ToList();
+			var pages = TestContext.Api.Capabilities.ReadPartialPaged(SelectCapabilityIdAndName(CapabilityFilter.ToQuery())).ToList();
 			var objectsById = TestContext.Api.Capabilities.Read(CapabilityFilter).ToDictionary(x => x.Id);
 
 			Assert.AreEqual(1, pages.Count);
 			Assert.IsFalse(pages[0].HasNextPage);
-			CollectionAssert.AreEquivalent(objectsById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+			CollectionAssert.AreEquivalent(objectsById.Keys.ToList(), pages[0].Select(x => x.GetValue(CapabilityExposers.Id)).ToList());
 
 			foreach (var partialObject in pages[0])
 			{
-				Assert.AreEqual(objectsById[partialObject.Id].Name, partialObject.GetValue(CapabilityExposers.Name));
+				Assert.AreEqual(objectsById[partialObject.GetValue(CapabilityExposers.Id)].Name, partialObject.GetValue(CapabilityExposers.Name));
 			}
 		}
 
@@ -669,7 +667,8 @@ namespace RT_MediaOps.Plan.RST.Querying
 			// The objects are read in full, so any exposer of the type can be projected, also one that is unknown to the filter translator.
 			var customField = new Exposer<Capability, string>(x => x.Name, "Unknown");
 
-			var partialObjectsById = TestContext.Api.Capabilities.ReadPartial(CapabilityFilter.WithFields(customField)).ToDictionary(x => x.Id);
+			var partialQuery = new PartialQuery<Capability>(CapabilityFilter.ToQuery()).Include(CapabilityExposers.Id).Include(customField);
+			var partialObjectsById = TestContext.Api.Capabilities.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(CapabilityExposers.Id));
 
 			Assert.AreEqual(Setup.Capabilities.Length, partialObjectsById.Count);
 
@@ -682,14 +681,14 @@ namespace RT_MediaOps.Plan.RST.Querying
 		[TestMethod]
 		public void ReadPartialCapabilitiesWithFilter_ReturnsSameValuesAsFullRead()
 		{
-			var partialFilter = CapabilityFilter.WithFields(
-				CapabilityExposers.Id,
-				CapabilityExposers.Name,
-				CapabilityExposers.IsMandatory,
-				CapabilityExposers.IsTimeDependent,
-				CapabilityExposers.Discretes);
+			var partialQuery = new PartialQuery<Capability>(CapabilityFilter.ToQuery())
+				.Include(CapabilityExposers.Id)
+				.Include(CapabilityExposers.Name)
+				.Include(CapabilityExposers.IsMandatory)
+				.Include(CapabilityExposers.IsTimeDependent)
+				.Include(CapabilityExposers.Discretes);
 
-			var partialObjectsById = TestContext.Api.Capabilities.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialObjectsById = TestContext.Api.Capabilities.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(CapabilityExposers.Id));
 			var capabilities = TestContext.Api.Capabilities.Read(CapabilityFilter).ToList();
 
 			Assert.AreEqual(capabilities.Count, partialObjectsById.Count);
@@ -708,6 +707,11 @@ namespace RT_MediaOps.Plan.RST.Querying
 			Assert.IsTrue(capabilities.Any(x => x.IsMandatory) && capabilities.Any(x => !x.IsMandatory), "The setup doesn't cover both mandatory values.");
 			Assert.IsTrue(capabilities.Any(x => x.IsTimeDependent) && capabilities.Any(x => !x.IsTimeDependent), "The setup doesn't cover both time dependent values.");
 			Assert.IsTrue(capabilities.Any(x => x.Discretes.Count > 1), "No capability with multiple discretes.");
+		}
+
+		private static IPartialQuery<Capability> SelectCapabilityIdAndName(IQuery<Capability> query)
+		{
+			return new PartialQuery<Capability>(query).Include(CapabilityExposers.Id).Include(CapabilityExposers.Name);
 		}
 
 		[TestMethod]
