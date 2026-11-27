@@ -659,6 +659,10 @@ recurringJob.Pattern.WeekDays = WeekDays.Monday | WeekDays.Wednesday;
 recurringJob.Pattern.EndDate = DateTimeOffset.UtcNow.AddMonths(3);
 recurringJob.DesiredJobState = DesiredJobState.Tentative; // State new occurrences are created in.
 
+// Properties set on the recurring job are copied to every job generated from it (Job.FromRecurringJob).
+recurringJob.AddProperty(new StringPropertySetting(notesProperty) { Value = "PO-12345" });
+recurringJob.AddCustomProperty(new CustomPropertySetting("Series") { Value = "Studio A" });
+
 recurringJob = api.RecurringJobs.Create(recurringJob);
 
 // Link the source job to the new recurring job so it is part of the series

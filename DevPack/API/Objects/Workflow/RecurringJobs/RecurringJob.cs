@@ -527,6 +527,72 @@
 		}
 
 		/// <summary>
+		/// Adds a custom property setting to this recurring job.
+		/// </summary>
+		/// <param name="setting">The custom property setting to add.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		public RecurringJob AddCustomProperty(CustomPropertySetting setting)
+		{
+			GetOrCreateScope().AddCustomProperty(setting);
+			return this;
+		}
+
+		/// <summary>
+		/// Replaces the entire collection of custom property settings associated with this recurring job with the specified settings.
+		/// </summary>
+		/// <param name="settings">The custom property settings that should replace the current collection.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		public RecurringJob SetCustomProperties(IEnumerable<CustomPropertySetting> settings)
+		{
+			GetOrCreateScope().SetCustomProperties(settings);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes the specified custom property setting from this recurring job.
+		/// </summary>
+		/// <param name="setting">The custom property setting to remove.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		public RecurringJob RemoveCustomProperty(CustomPropertySetting setting)
+		{
+			GetOrCreateScope().RemoveCustomProperty(setting);
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a property setting to this recurring job.
+		/// </summary>
+		/// <param name="setting">The property setting to add.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		public RecurringJob AddProperty(PropertySetting setting)
+		{
+			GetOrCreateScope().AddProperty(setting);
+			return this;
+		}
+
+		/// <summary>
+		/// Replaces the entire collection of property settings associated with this recurring job with the specified settings.
+		/// </summary>
+		/// <param name="settings">The property settings that should replace the current collection.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		public RecurringJob SetProperties(IEnumerable<PropertySetting> settings)
+		{
+			GetOrCreateScope().SetProperties(settings);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes the specified property setting from this recurring job.
+		/// </summary>
+		/// <param name="setting">The property setting to remove.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		public RecurringJob RemoveProperty(PropertySetting setting)
+		{
+			GetOrCreateScope().RemoveProperty(setting);
+			return this;
+		}
+
+		/// <summary>
 		/// Adds a contact to the recurring job.
 		/// </summary>
 		/// <param name="contactId">The unique identifier of the contact to add.</param>
