@@ -6,6 +6,7 @@
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.SDM;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -17,6 +18,7 @@
 	internal class ConfigurationsRepository : Repository, IConfigurationsRepository
 	{
 		private readonly ConfigurationFilterTranslator filterTranslator = new ConfigurationFilterTranslator();
+		private readonly ProjectionPartialReader<Configuration> partialReader;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ConfigurationsRepository"/> class.
@@ -24,6 +26,7 @@
 		/// <param name="planApi">The MediaOps Plan API instance.</param>
 		public ConfigurationsRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
+			partialReader = new ProjectionPartialReader<Configuration>(Read, ReadPaged);
 		}
 
 		/// <summary>
@@ -348,6 +351,24 @@
 
 			var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(TranslateToParameterQuery(query));
 			return Configuration.InstantiateConfigurations(configurations);
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<PartialObject<Configuration>> ReadPartial(IPartialQuery<Configuration> partialQuery)
+		{
+			return partialReader.ReadPartial(partialQuery);
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<IPagedResult<PartialObject<Configuration>>> ReadPartialPaged(IPartialQuery<Configuration> partialQuery)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<IPagedResult<PartialObject<Configuration>>> ReadPartialPaged(IPartialQuery<Configuration> partialQuery, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}
 
 		/// <summary>
