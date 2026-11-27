@@ -112,6 +112,62 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 			Assert.AreEqual("Value1", returned.CustomPropertySettings.Single(x => x.Name == "Tag1").Value);
 		}
 
+		[TestMethod]
+		public void UpdateRecurringJob_AfterChangingPropertiesOnRecurringJob_IsBlockedAndKeepsStoredProperties()
+		{
+			var prefix = Guid.NewGuid();
+			var property = objectCreator.CreateSchedulingProperty(new StringProperty { Name = $"{prefix}_String", SectionName = "General" });
+			var otherProperty = objectCreator.CreateSchedulingProperty(new StringProperty { Name = $"{prefix}_Other", SectionName = "General" });
+
+			var recurringJob = NewRecurringJob($"{prefix}_RecurringJob");
+			recurringJob.AddProperty(new StringPropertySetting(property) { Value = "Original" });
+			recurringJob.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "Original" });
+			recurringJob = objectCreator.CreateRecurringJob(recurringJob);
+
+			var read = TestContext.Api.RecurringJobs.Read(recurringJob.Id);
+			read.PropertySettings.OfType<StringPropertySetting>().Single().Value = "Changed";
+			read.AddProperty(new StringPropertySetting(otherProperty) { Value = "Added" });
+			read.RemoveCustomProperty(read.CustomPropertySettings.Single());
+			read.AddCustomProperty(new CustomPropertySetting("Added") { Value = "Added" });
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.RecurringJobs.Update(read));
+
+			Assert.IsTrue(exception.TraceData.ErrorData.OfType<RecurringJobInvalidStateError>().Any());
+			var stored = TestContext.Api.RecurringJobs.Read(recurringJob.Id);
+			Assert.AreEqual(property.Id, stored.PropertySettings.Single().Id);
+			Assert.AreEqual("Original", ((StringPropertySetting)stored.PropertySettings.Single()).Value);
+			Assert.AreEqual("Tag", stored.CustomPropertySettings.Single().Name);
+			Assert.AreEqual("Original", stored.CustomPropertySettings.Single().Value);
+		}
+
+		[TestMethod]
+		public void UpdateRecurringJob_AfterChangingPropertiesOnNode_IsBlockedAndKeepsStoredProperties()
+		{
+			var prefix = Guid.NewGuid();
+			var property = objectCreator.CreateSchedulingProperty(new StringProperty { Name = $"{prefix}_String", SectionName = "General" });
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var node = new RecurringJobResourcePoolNode(pool);
+			node.AddProperty(new StringPropertySetting(property) { Value = "Original" });
+			node.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "Original" });
+			var recurringJob = NewRecurringJob($"{prefix}_RecurringJob");
+			recurringJob.NodeGraph.Add(node);
+			recurringJob = objectCreator.CreateRecurringJob(recurringJob);
+
+			var read = TestContext.Api.RecurringJobs.Read(recurringJob.Id);
+			var readNode = read.NodeGraph.Nodes.Single();
+			readNode.PropertySettings.OfType<StringPropertySetting>().Single().Value = "Changed";
+			readNode.AddCustomProperty(new CustomPropertySetting("Added") { Value = "Added" });
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.RecurringJobs.Update(read));
+
+			Assert.IsTrue(exception.TraceData.ErrorData.OfType<RecurringJobInvalidStateError>().Any());
+			var storedNode = TestContext.Api.RecurringJobs.Read(recurringJob.Id).NodeGraph.Nodes.Single();
+			Assert.AreEqual("Original", ((StringPropertySetting)storedNode.PropertySettings.Single()).Value);
+			Assert.AreEqual("Tag", storedNode.CustomPropertySettings.Single().Name);
+		}
+
 		private static RecurringJob NewRecurringJob(string name)
 		{
 			var recurringJob = new RecurringJob
