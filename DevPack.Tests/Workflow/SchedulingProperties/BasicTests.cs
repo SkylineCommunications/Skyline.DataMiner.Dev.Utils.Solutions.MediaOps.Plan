@@ -294,11 +294,11 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 
 			foreach (var (expectedObjects, query) in setup.QueryTestCases.Concat(setup.LimitedQueryTestCases))
 			{
-				var partialProperties = TestContext.Api.SchedulingProperties.ReadPartial(query.WithFields(PropertyExposers.Name)).ToList();
+				var partialProperties = TestContext.Api.SchedulingProperties.ReadPartial(SelectIdAndName(query)).ToList();
 				var fullRead = TestContext.Api.SchedulingProperties.Read(query).ToList();
 
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), fullRead.Select(x => x.Id).ToList(), $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialProperties.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialProperties.Select(x => x.GetValue(PropertyExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(fullRead.Select(x => x.Name).ToList(), partialProperties.Select(x => x.GetValue(PropertyExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -310,11 +310,11 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 
 			foreach (var (expectedObjects, query) in setup.QueryTestCases.Concat(setup.LimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.SchedulingProperties.ReadPartialPaged(query.WithFields(PropertyExposers.Name)).ToList();
+				var pages = TestContext.Api.SchedulingProperties.ReadPartialPaged(SelectIdAndName(query)).ToList();
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(PropertyExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(PropertyExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -323,13 +323,12 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		public void ReadPartialPagedSchedulingPropertiesWithQuery_CustomPageSize_SplitsPropertiesOverPages()
 		{
 			var setup = CreatePartialReadProperties();
-			var repository = (SchedulingPropertiesRepository)TestContext.Api.SchedulingProperties;
 
 			foreach (var (expectedObjects, query) in setup.QueryTestCases.Concat(setup.LimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(PropertyExposers.Name), 2).ToList();
+				var pages = TestContext.Api.SchedulingProperties.ReadPartialPaged(SelectIdAndName(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(PropertyExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -343,16 +342,21 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		{
 			var setup = CreatePartialReadProperties();
 
-			var pages = TestContext.Api.SchedulingProperties.ReadPartialPaged(setup.Filter.WithFields(PropertyExposers.Name, PropertyExposers.Scope)).ToList();
+			var partialQuery = new PartialQuery<Property>(setup.Filter.ToQuery())
+				.Include(PropertyExposers.Id)
+				.Include(PropertyExposers.Name)
+				.Include(PropertyExposers.Scope);
+
+			var pages = TestContext.Api.SchedulingProperties.ReadPartialPaged(partialQuery).ToList();
 			var propertiesById = TestContext.Api.SchedulingProperties.Read(setup.Filter).ToDictionary(x => x.Id);
 
 			Assert.AreEqual(1, pages.Count);
-			CollectionAssert.AreEquivalent(setup.ScopedProperties.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList());
-			CollectionAssert.AreEquivalent(propertiesById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+			CollectionAssert.AreEquivalent(setup.ScopedProperties.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(PropertyExposers.Id)).ToList());
+			CollectionAssert.AreEquivalent(propertiesById.Keys.ToList(), pages[0].Select(x => x.GetValue(PropertyExposers.Id)).ToList());
 
 			foreach (var partialProperty in pages[0])
 			{
-				var property = propertiesById[partialProperty.Id];
+				var property = propertiesById[partialProperty.GetValue(PropertyExposers.Id)];
 				Assert.AreEqual(property.Name, partialProperty.GetValue(PropertyExposers.Name));
 				Assert.AreEqual(property.Scope, partialProperty.GetValue(PropertyExposers.Scope));
 			}
@@ -363,14 +367,14 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		{
 			var setup = CreatePartialReadProperties();
 
-			var partialFilter = setup.Filter.WithFields(
-				PropertyExposers.Id,
-				PropertyExposers.Name,
-				PropertyExposers.Scope,
-				PropertyExposers.SectionName,
-				PropertyExposers.Order);
+			var partialQuery = new PartialQuery<Property>(setup.Filter.ToQuery())
+				.Include(PropertyExposers.Id)
+				.Include(PropertyExposers.Name)
+				.Include(PropertyExposers.Scope)
+				.Include(PropertyExposers.SectionName)
+				.Include(PropertyExposers.Order);
 
-			var partialPropertiesById = TestContext.Api.SchedulingProperties.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialPropertiesById = TestContext.Api.SchedulingProperties.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(PropertyExposers.Id));
 			var properties = TestContext.Api.SchedulingProperties.Read(setup.Filter).ToList();
 
 			Assert.AreEqual(setup.ScopedProperties.Length, properties.Count);
@@ -393,7 +397,7 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		{
 			var setup = CreatePartialReadProperties();
 
-			var partialProperties = TestContext.Api.SchedulingProperties.ReadPartial(setup.Filter.WithFields(PropertyExposers.Id)).ToList();
+			var partialProperties = TestContext.Api.SchedulingProperties.ReadPartial(new PartialQuery<Property>(setup.Filter.ToQuery()).Include(PropertyExposers.Id)).ToList();
 
 			CollectionAssert.AreEquivalent(setup.ScopedProperties.Select(x => x.Id).ToList(), partialProperties.Select(x => x.GetValue(PropertyExposers.Id)).ToList());
 		}
@@ -404,8 +408,15 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 			var unknownField = new Exposer<Property, string>(x => x.Name, "Unknown");
 			var filter = PropertyExposers.Name.Contains(Guid.NewGuid().ToString());
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.SchedulingProperties.ReadPartial(filter.WithFields(unknownField)));
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.SchedulingProperties.ReadPartialPaged(filter.WithFields(unknownField)));
+			var partialQuery = new PartialQuery<Property>(filter.ToQuery()).Include(unknownField);
+
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.SchedulingProperties.ReadPartial(partialQuery));
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.SchedulingProperties.ReadPartialPaged(partialQuery));
+		}
+
+		private static IPartialQuery<Property> SelectIdAndName(IQuery<Property> query)
+		{
+			return new PartialQuery<Property>(query).Include(PropertyExposers.Id).Include(PropertyExposers.Name);
 		}
 
 		/// <summary>

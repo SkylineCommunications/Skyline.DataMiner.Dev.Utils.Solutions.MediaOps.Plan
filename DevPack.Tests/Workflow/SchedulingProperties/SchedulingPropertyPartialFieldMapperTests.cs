@@ -60,6 +60,14 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var nameWithWrongType = new Exposer<Property, int>(x => x.Name.Length, PropertyExposers.Name.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => SchedulingPropertyPartialFieldMapper.CreateSelectedFields(new[] { nameWithWrongType }));
+		}
+
+		[TestMethod]
 		public void CreatePartialProperty_ConvertsValuesLikeAFullRead()
 		{
 			var id = Guid.NewGuid();
@@ -74,7 +82,6 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 
 			var partialProperty = CreatePartialProperties(new[] { domPartialObject }, AllFields).Single();
 
-			Assert.AreEqual(id, partialProperty.Id);
 			Assert.AreEqual(id, partialProperty.GetValue(PropertyExposers.Id));
 			Assert.AreEqual("Name", partialProperty.GetValue(PropertyExposers.Name));
 			Assert.AreEqual("MediaOps", partialProperty.GetValue(PropertyExposers.Scope));
@@ -110,7 +117,7 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 
 			var partialProperties = CreatePartialProperties(domPartialObjects, PropertyExposers.Id);
 
-			CollectionAssert.AreEqual(new[] { stringId, discreteId, fileId }, partialProperties.Select(x => x.Id).ToList());
+			CollectionAssert.AreEqual(new[] { stringId, discreteId, fileId }, partialProperties.Select(x => x.GetValue(PropertyExposers.Id)).ToList());
 		}
 
 		[TestMethod]
