@@ -45,6 +45,14 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var nameWithWrongType = new Exposer<Workflow, int>(x => x.Name.Length, WorkflowExposers.Name.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => WorkflowPartialFieldMapper.CreateSelectedFields(new[] { nameWithWrongType }));
+		}
+
+		[TestMethod]
 		public void CreatePartialWorkflow_ConvertsValuesLikeAFullRead()
 		{
 			var id = Guid.NewGuid();
@@ -75,7 +83,6 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 				WorkflowExposers.State,
 			});
 
-			Assert.AreEqual(id, partialWorkflow.Id);
 			Assert.AreEqual(id, partialWorkflow.GetValue(WorkflowExposers.Id));
 			Assert.AreEqual("Workflow", partialWorkflow.GetValue(WorkflowExposers.Name));
 			Assert.AreEqual("Description", partialWorkflow.GetValue(WorkflowExposers.Description));

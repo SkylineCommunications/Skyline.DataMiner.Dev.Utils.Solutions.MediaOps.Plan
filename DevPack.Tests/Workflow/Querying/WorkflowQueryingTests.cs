@@ -99,9 +99,9 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		{
 			foreach (var (expectedObjects, query) in WorkflowQueryTestCases.Concat(WorkflowLimitedQueryTestCases))
 			{
-				var partialWorkflows = TestContext.Api.Workflows.ReadPartial(query.WithFields(WorkflowExposers.Name)).ToList();
+				var partialWorkflows = TestContext.Api.Workflows.ReadPartial(SelectIdAndName(query)).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialWorkflows.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialWorkflows.Select(x => x.GetValue(WorkflowExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialWorkflows.Select(x => x.GetValue(WorkflowExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -111,11 +111,11 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		{
 			foreach (var (expectedObjects, query) in WorkflowQueryTestCases.Concat(WorkflowLimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.Workflows.ReadPartialPaged(query.WithFields(WorkflowExposers.Name)).ToList();
+				var pages = TestContext.Api.Workflows.ReadPartialPaged(SelectIdAndName(query)).ToList();
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(WorkflowExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(WorkflowExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -123,13 +123,11 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		[TestMethod]
 		public void ReadPartialPagedWorkflowsWithQuery_CustomPageSize_SplitsWorkflowsOverPages()
 		{
-			var repository = (WorkflowsRepository)TestContext.Api.Workflows;
-
 			foreach (var (expectedObjects, query) in WorkflowQueryTestCases.Concat(WorkflowLimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(WorkflowExposers.Name), 2).ToList();
+				var pages = TestContext.Api.Workflows.ReadPartialPaged(SelectIdAndName(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(WorkflowExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -141,15 +139,20 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		[TestMethod]
 		public void ReadPartialPagedWorkflowsWithFilter_ReturnsAllWorkflows()
 		{
-			var pages = TestContext.Api.Workflows.ReadPartialPaged(WorkflowFilter.WithFields(WorkflowExposers.Name, WorkflowExposers.Resources)).ToList();
+			var partialQuery = new PartialQuery<Workflow>(WorkflowFilter.ToQuery())
+				.Include(WorkflowExposers.Id)
+				.Include(WorkflowExposers.Name)
+				.Include(WorkflowExposers.Resources);
+
+			var pages = TestContext.Api.Workflows.ReadPartialPaged(partialQuery).ToList();
 			var workflowsById = TestContext.Api.Workflows.Read(WorkflowFilter).ToDictionary(x => x.Id);
 
 			Assert.AreEqual(1, pages.Count);
-			CollectionAssert.AreEquivalent(workflowsById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+			CollectionAssert.AreEquivalent(workflowsById.Keys.ToList(), pages[0].Select(x => x.GetValue(WorkflowExposers.Id)).ToList());
 
 			foreach (var partialWorkflow in pages[0])
 			{
-				var workflow = workflowsById[partialWorkflow.Id];
+				var workflow = workflowsById[partialWorkflow.GetValue(WorkflowExposers.Id)];
 				Assert.AreEqual(workflow.Name, partialWorkflow.GetValue(WorkflowExposers.Name));
 				CollectionAssert.AreEqual(workflow.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId).ToList(), partialWorkflow.GetValues(WorkflowExposers.Resources).ToList(), workflow.Name);
 			}
@@ -158,21 +161,21 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		[TestMethod]
 		public void ReadPartialWorkflowsWithFilter_ReturnsSameValuesAsFullRead()
 		{
-			var partialFilter = WorkflowFilter.WithFields(
-				WorkflowExposers.Id,
-				WorkflowExposers.Name,
-				WorkflowExposers.Description,
-				WorkflowExposers.Priority,
-				WorkflowExposers.IsFavorite,
-				WorkflowExposers.PreRoll,
-				WorkflowExposers.PostRoll,
-				WorkflowExposers.Notes,
-				WorkflowExposers.JobTypeCategoryId,
-				WorkflowExposers.State,
-				WorkflowExposers.Resources,
-				WorkflowExposers.ResourcePools);
+			var partialQuery = new PartialQuery<Workflow>(WorkflowFilter.ToQuery())
+				.Include(WorkflowExposers.Id)
+				.Include(WorkflowExposers.Name)
+				.Include(WorkflowExposers.Description)
+				.Include(WorkflowExposers.Priority)
+				.Include(WorkflowExposers.IsFavorite)
+				.Include(WorkflowExposers.PreRoll)
+				.Include(WorkflowExposers.PostRoll)
+				.Include(WorkflowExposers.Notes)
+				.Include(WorkflowExposers.JobTypeCategoryId)
+				.Include(WorkflowExposers.State)
+				.Include(WorkflowExposers.Resources)
+				.Include(WorkflowExposers.ResourcePools);
 
-			var partialWorkflowsById = TestContext.Api.Workflows.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialWorkflowsById = TestContext.Api.Workflows.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(WorkflowExposers.Id));
 			var workflows = TestContext.Api.Workflows.Read(WorkflowFilter).ToList();
 
 			Assert.AreEqual(workflows.Count, partialWorkflowsById.Count);
@@ -205,7 +208,12 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		{
 			var unknownField = new Exposer<Workflow, string>(x => x.Name, "Unknown");
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Workflows.ReadPartial(WorkflowFilter.WithFields(unknownField)));
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Workflows.ReadPartial(new PartialQuery<Workflow>(WorkflowFilter.ToQuery()).Include(unknownField)));
+		}
+
+		private static IPartialQuery<Workflow> SelectIdAndName(IQuery<Workflow> query)
+		{
+			return new PartialQuery<Workflow>(query).Include(WorkflowExposers.Id).Include(WorkflowExposers.Name);
 		}
 
 		private static Guid GetResourcePoolId(WorkflowNode node)

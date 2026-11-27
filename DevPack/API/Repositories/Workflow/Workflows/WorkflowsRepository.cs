@@ -389,29 +389,19 @@
 			return ReadPagedIterator(query, pageSize);
 		}
 
-		public IEnumerable<SDM.PartialObject<Workflow>> ReadPartial(SDM.IPartialFilterElement<Workflow> partialFilter)
+		public IEnumerable<SDM.PartialObject<Workflow>> ReadPartial(SDM.IPartialQuery<Workflow> query)
 		{
-			return partialReader.ReadPartial(partialFilter);
+			return partialReader.ReadPartial(query);
 		}
 
-		public IEnumerable<SDM.PartialObject<Workflow>> ReadPartial(SDM.IPartialQuery<Workflow> partialQuery)
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialQuery<Workflow> query)
 		{
-			return partialReader.ReadPartial(partialQuery);
+			return partialReader.ReadPartialPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
-		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialFilterElement<Workflow> partialFilter)
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialQuery<Workflow> query, int pageSize)
 		{
-			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialQuery<Workflow> partialQuery)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialQuery<Workflow> partialQuery, int pageSize)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, pageSize);
+			return partialReader.ReadPartialPaged(query, pageSize);
 		}
 
 		public IReadOnlyCollection<Workflow> Update(IEnumerable<Workflow> oToUpdate)
