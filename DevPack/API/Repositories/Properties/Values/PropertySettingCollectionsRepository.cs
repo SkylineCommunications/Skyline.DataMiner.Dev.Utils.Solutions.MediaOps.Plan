@@ -462,21 +462,9 @@
 		}
 
 		/// <inheritdoc />
-		public IEnumerable<SDM.PartialObject<PropertySettingCollection>> ReadPartial(SDM.IPartialFilterElement<PropertySettingCollection> partialFilter)
-		{
-			return partialReader.ReadPartial(partialFilter);
-		}
-
-		/// <inheritdoc />
 		public IEnumerable<SDM.PartialObject<PropertySettingCollection>> ReadPartial(SDM.IPartialQuery<PropertySettingCollection> partialQuery)
 		{
 			return partialReader.ReadPartial(partialQuery);
-		}
-
-		/// <inheritdoc />
-		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<PropertySettingCollection>>> ReadPartialPaged(SDM.IPartialFilterElement<PropertySettingCollection> partialFilter)
-		{
-			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <inheritdoc />
@@ -485,7 +473,8 @@
 			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
 		}
 
-		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<PropertySettingCollection>>> ReadPartialPaged(SDM.IPartialQuery<PropertySettingCollection> partialQuery, int pageSize)
+		/// <inheritdoc />
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<PropertySettingCollection>>> ReadPartialPaged(SDM.IPartialQuery<PropertySettingCollection> partialQuery, int pageSize)
 		{
 			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}

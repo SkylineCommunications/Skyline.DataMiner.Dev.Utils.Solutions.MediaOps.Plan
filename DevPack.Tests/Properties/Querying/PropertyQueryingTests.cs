@@ -390,9 +390,9 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		{
 			foreach (var (expectedObjects, query) in PropertySettingCollectionQueryTestCases.Concat(PropertySettingCollectionLimitedQueryTestCases))
 			{
-				var partialCollections = TestContext.Api.PropertySettingCollections.ReadPartial(query.WithFields(PropertySettingCollectionExposers.LinkedObjectId)).ToList();
+				var partialCollections = TestContext.Api.PropertySettingCollections.ReadPartial(SelectCollectionIdAndLinkedObjectId(query)).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialCollections.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialCollections.Select(x => x.GetValue(PropertySettingCollectionExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.LinkedObjectId).ToList(), partialCollections.Select(x => x.GetValue(PropertySettingCollectionExposers.LinkedObjectId)).ToList(), $"Query: {query}");
 			}
 		}
@@ -402,11 +402,11 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		{
 			foreach (var (expectedObjects, query) in PropertySettingCollectionQueryTestCases.Concat(PropertySettingCollectionLimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.PropertySettingCollections.ReadPartialPaged(query.WithFields(PropertySettingCollectionExposers.LinkedObjectId)).ToList();
+				var pages = TestContext.Api.PropertySettingCollections.ReadPartialPaged(SelectCollectionIdAndLinkedObjectId(query)).ToList();
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(PropertySettingCollectionExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.LinkedObjectId).ToList(), pages[0].Select(x => x.GetValue(PropertySettingCollectionExposers.LinkedObjectId)).ToList(), $"Query: {query}");
 			}
 		}
@@ -414,13 +414,11 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		[TestMethod]
 		public void ReadPartialPagedPropertySettingCollectionsWithQuery_CustomPageSize_SplitsCollectionsOverPages()
 		{
-			var repository = (PropertySettingCollectionsRepository)TestContext.Api.PropertySettingCollections;
-
 			foreach (var (expectedObjects, query) in PropertySettingCollectionQueryTestCases.Concat(PropertySettingCollectionLimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(PropertySettingCollectionExposers.LinkedObjectId), 2).ToList();
+				var pages = TestContext.Api.PropertySettingCollections.ReadPartialPaged(SelectCollectionIdAndLinkedObjectId(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(PropertySettingCollectionExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -432,19 +430,19 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		[TestMethod]
 		public void ReadPartialPropertySettingCollectionsWithFilter_ReturnsSameValuesAsFullRead()
 		{
-			var partialFilter = PropertySettingCollectionFilter.WithFields(
-				PropertySettingCollectionExposers.Id,
-				PropertySettingCollectionExposers.LinkedObjectId,
-				PropertySettingCollectionExposers.Scope,
-				PropertySettingCollectionExposers.SubId,
-				PropertySettingCollectionExposers.CustomPropertySettings.Name,
-				PropertySettingCollectionExposers.CustomPropertySettings.Value,
-				PropertySettingCollectionExposers.PropertySettings.PropertyId,
-				PropertySettingCollectionExposers.StringPropertySettings.Value,
-				PropertySettingCollectionExposers.BooleanPropertySettings.Value,
-				PropertySettingCollectionExposers.DiscretePropertySettings.Value);
+			var partialQuery = new PartialQuery<PropertySettingCollection>(PropertySettingCollectionFilter.ToQuery())
+				.Include(PropertySettingCollectionExposers.Id)
+				.Include(PropertySettingCollectionExposers.LinkedObjectId)
+				.Include(PropertySettingCollectionExposers.Scope)
+				.Include(PropertySettingCollectionExposers.SubId)
+				.Include(PropertySettingCollectionExposers.CustomPropertySettings.Name)
+				.Include(PropertySettingCollectionExposers.CustomPropertySettings.Value)
+				.Include(PropertySettingCollectionExposers.PropertySettings.PropertyId)
+				.Include(PropertySettingCollectionExposers.StringPropertySettings.Value)
+				.Include(PropertySettingCollectionExposers.BooleanPropertySettings.Value)
+				.Include(PropertySettingCollectionExposers.DiscretePropertySettings.Value);
 
-			var partialCollectionsById = TestContext.Api.PropertySettingCollections.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialCollectionsById = TestContext.Api.PropertySettingCollections.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(PropertySettingCollectionExposers.Id));
 			var collections = TestContext.Api.PropertySettingCollections.Read(PropertySettingCollectionFilter).ToList();
 
 			Assert.AreEqual(collections.Count, partialCollectionsById.Count);
@@ -478,7 +476,12 @@ namespace RT_MediaOps.Plan.Properties.Querying
 		{
 			var unknownField = new Exposer<PropertySettingCollection, string>(x => x.LinkedObjectId, "Unknown");
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.PropertySettingCollections.ReadPartial(PropertySettingCollectionFilter.WithFields(unknownField)));
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.PropertySettingCollections.ReadPartial(new PartialQuery<PropertySettingCollection>(PropertySettingCollectionFilter.ToQuery()).Include(unknownField)));
+		}
+
+		private static IPartialQuery<PropertySettingCollection> SelectCollectionIdAndLinkedObjectId(IQuery<PropertySettingCollection> query)
+		{
+			return new PartialQuery<PropertySettingCollection>(query).Include(PropertySettingCollectionExposers.Id).Include(PropertySettingCollectionExposers.LinkedObjectId);
 		}
 
 		[TestMethod]

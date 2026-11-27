@@ -30,20 +30,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			[PropertySettingCollectionExposers.Scope.fieldName] = PartialField.ForString(PropertyValueInfo.Scope),
 			[PropertySettingCollectionExposers.SubId.fieldName] = PartialField.ForString(PropertyValueInfo.SubID),
 
-			[PropertySettingCollectionExposers.CustomPropertySettings.Name.fieldName] = new PartialField(x => x.GetCustomNames(), PropertyValue.PropertyID, PropertyValue.PropertyName)
-			{
-				CanCombineSections = x => x.CanCombineCustomNames(),
-			},
-			[PropertySettingCollectionExposers.CustomPropertySettings.Value.fieldName] = new PartialField(x => x.GetCustomValues(), PropertyValue.PropertyID, PropertyValue.PropertyName, PropertyValue.Value)
-			{
-				CanCombineSections = x => x.CanCombineCustomValues(),
-			},
-			[PropertySettingCollectionExposers.PropertySettings.PropertyId.fieldName] = new PartialField(x => x.GetPropertyIds().Cast<object>(), PropertyValue.PropertyID)
-			{
-				RequiresProperties = true,
-			},
+			[PropertySettingCollectionExposers.CustomPropertySettings.Name.fieldName] = PartialField.Collection(x => x.GetCustomNames(), PropertyValue.PropertyID, PropertyValue.PropertyName)
+				.WithCanCombineSections(x => x.CanCombineCustomNames()),
+			[PropertySettingCollectionExposers.CustomPropertySettings.Value.fieldName] = PartialField.Collection(x => x.GetCustomValues(), PropertyValue.PropertyID, PropertyValue.PropertyName, PropertyValue.Value)
+				.WithCanCombineSections(x => x.CanCombineCustomValues()),
+			[PropertySettingCollectionExposers.PropertySettings.PropertyId.fieldName] = PartialField.Collection(x => x.GetPropertyIds(), PropertyValue.PropertyID)
+				.WithRequiresProperties(),
 			[PropertySettingCollectionExposers.StringPropertySettings.Value.fieldName] = PartialField.ForPropertyValues(x => x.GetStringValues()),
-			[PropertySettingCollectionExposers.BooleanPropertySettings.Value.fieldName] = PartialField.ForPropertyValues(x => x.GetBooleanValues().Cast<object>()),
+			[PropertySettingCollectionExposers.BooleanPropertySettings.Value.fieldName] = PartialField.ForPropertyValues(x => x.GetBooleanValues()),
 			[PropertySettingCollectionExposers.DiscretePropertySettings.Value.fieldName] = PartialField.ForPropertyValues(x => x.GetDiscreteValues()),
 		};
 
@@ -127,9 +121,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return contexts
-				.Select(context => new Skyline.DataMiner.SDM.PartialObject<PropertySettingCollection>(
-					context.CollectionId,
-					selected.Select(x => new KeyValuePair<FieldExposer, IEnumerable<object>>(x.Exposer, x.Field.Read(context).ToList()))))
+				.Select(context =>
+				{
+					var builder = Skyline.DataMiner.SDM.PartialObject<PropertySettingCollection>.CreateBuilder();
+					foreach (var (exposer, field) in selected)
+					{
+						field.Include(builder, exposer, context);
+					}
+
+					return builder.Build();
+				})
 				.ToList();
 		}
 
@@ -177,7 +178,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private static IEnumerable<(FieldExposer Exposer, PartialField Field)> GetFields(IEnumerable<FieldExposer> fields)
 		{
-			var seen = new HashSet<FieldExposer>(FieldExposerComparer.Instance);
+			// Partial objects look up values by exposer instance, so the instances themselves are de-duplicated.
+			var seen = new HashSet<FieldExposer>();
 
 			foreach (var exposer in fields)
 			{
@@ -186,7 +188,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				if (exposer.FilterType != typeof(PropertySettingCollection) || !Fields.TryGetValue(exposer.fieldName, out var field))
+				if (exposer.FilterType != typeof(PropertySettingCollection) || !Fields.TryGetValue(exposer.fieldName, out var field) || !field.ExposerType.IsInstanceOfType(exposer))
 				{
 					throw new NotSupportedException($"Field '{exposer.fieldName}' can't be read partially. Supported fields: {String.Join(", ", Fields.Keys)}.");
 				}
@@ -195,39 +197,48 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private static IEnumerable<object> ToValues(object value)
-		{
-			return value == null ? Enumerable.Empty<object>() : new[] { value };
-		}
-
-		private static object ReadString(DomPartialObject partialObject, FieldDescriptorID descriptor)
+		private static string ReadString(DomPartialObject partialObject, FieldDescriptorID descriptor)
 		{
 			return partialObject.TryGetValue<string>(descriptor, out var value) ? value : null;
 		}
 
 		private sealed class PartialField
 		{
-			public PartialField(Func<PropertySettingCollectionPartialReadContext, IEnumerable<object>> read, params FieldDescriptorID[] descriptors)
+			private readonly Action<Skyline.DataMiner.SDM.PartialObject<PropertySettingCollection>.Builder, FieldExposer, PropertySettingCollectionPartialReadContext> include;
+
+			private PartialField(Type exposerType, Action<Skyline.DataMiner.SDM.PartialObject<PropertySettingCollection>.Builder, FieldExposer, PropertySettingCollectionPartialReadContext> include, FieldDescriptorID[] descriptors)
 			{
-				Read = read;
+				ExposerType = exposerType;
+				this.include = include;
 				Descriptors = descriptors;
 			}
 
-			public Func<PropertySettingCollectionPartialReadContext, IEnumerable<object>> Read { get; }
+			/// <summary>
+			/// Gets the type the selected exposer must have, so the value can be included with the exposer's field type.
+			/// </summary>
+			public Type ExposerType { get; }
 
 			public IReadOnlyCollection<FieldDescriptorID> Descriptors { get; }
 
-			public bool RequiresProperties { get; set; }
+			public bool RequiresProperties { get; private set; }
 
 			/// <summary>
-			/// Gets or sets a check whether the values of the setting sections can be combined per section.
+			/// Gets a check whether the values of the setting sections can be combined per section.
 			/// When it fails for a collection, the field is read from the full collection DOM instance.
 			/// </summary>
-			public Func<PropertySettingCollectionPartialReadContext, bool> CanCombineSections { get; set; }
+			public Func<PropertySettingCollectionPartialReadContext, bool> CanCombineSections { get; private set; }
 
-			public static PartialField Single(Func<DomPartialObject, object> read, params FieldDescriptorID[] descriptors)
+			public static PartialField Scalar<TField>(Func<PropertySettingCollectionPartialReadContext, TField> read, params FieldDescriptorID[] descriptors)
 			{
-				return new PartialField(x => ToValues(read(x.PartialObject)), descriptors);
+				return new PartialField(
+					typeof(Exposer<PropertySettingCollection, TField>),
+					(builder, exposer, context) => builder.Include((Exposer<PropertySettingCollection, TField>)exposer, read(context)),
+					descriptors);
+			}
+
+			public static PartialField Single<TField>(Func<DomPartialObject, TField> read, params FieldDescriptorID[] descriptors)
+			{
+				return Scalar(x => read(x.PartialObject), descriptors);
 			}
 
 			public static PartialField ForString(FieldDescriptorID descriptor)
@@ -235,17 +246,40 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return Single(x => ReadString(x, descriptor), descriptor);
 			}
 
+			public static PartialField Collection<TField>(Func<PropertySettingCollectionPartialReadContext, IEnumerable<TField>> read, params FieldDescriptorID[] descriptors)
+			{
+				return new PartialField(
+					typeof(DynamicListExposer<PropertySettingCollection, TField>),
+					(builder, exposer, context) => builder.Include((DynamicListExposer<PropertySettingCollection, TField>)exposer, read(context).ToList()),
+					descriptors);
+			}
+
 			/// <summary>
 			/// Creates a field holding the values of the settings of one property type. The property name is selected to know
 			/// whether there are custom settings, of which the values are in the same list.
 			/// </summary>
-			public static PartialField ForPropertyValues(Func<PropertySettingCollectionPartialReadContext, IEnumerable<object>> read)
+			public static PartialField ForPropertyValues<TField>(Func<PropertySettingCollectionPartialReadContext, IEnumerable<TField>> read)
 			{
-				return new PartialField(read, PropertyValue.PropertyID, PropertyValue.PropertyName, PropertyValue.Value)
-				{
-					RequiresProperties = true,
-					CanCombineSections = x => x.CanCombinePropertyValues(),
-				};
+				return Collection(read, PropertyValue.PropertyID, PropertyValue.PropertyName, PropertyValue.Value)
+					.WithRequiresProperties()
+					.WithCanCombineSections(x => x.CanCombinePropertyValues());
+			}
+
+			public PartialField WithRequiresProperties()
+			{
+				RequiresProperties = true;
+				return this;
+			}
+
+			public PartialField WithCanCombineSections(Func<PropertySettingCollectionPartialReadContext, bool> canCombineSections)
+			{
+				CanCombineSections = canCombineSections;
+				return this;
+			}
+
+			public void Include(Skyline.DataMiner.SDM.PartialObject<PropertySettingCollection>.Builder builder, FieldExposer exposer, PropertySettingCollectionPartialReadContext context)
+			{
+				include(builder, exposer, context);
 			}
 		}
 	}

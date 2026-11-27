@@ -48,6 +48,14 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var wrongType = new Exposer<PropertySettingCollection, int>(x => x.LinkedObjectId.Length, PropertySettingCollectionExposers.LinkedObjectId.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => PropertySettingCollectionPartialFieldMapper.CreateSelectedFields(new[] { wrongType }));
+		}
+
+		[TestMethod]
 		public void CreatePartialCollection_OnlyCustomSettings_AreCombinedPerSection()
 		{
 			var id = Guid.NewGuid();
