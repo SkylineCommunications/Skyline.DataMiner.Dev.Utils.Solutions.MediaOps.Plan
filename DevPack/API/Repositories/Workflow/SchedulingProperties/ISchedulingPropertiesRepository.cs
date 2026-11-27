@@ -3,12 +3,23 @@
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.SDM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	/// <summary>
 	/// Defines methods for managing <see cref="Property"/> objects in scheduling context.
 	/// </summary>
-	public interface ISchedulingPropertiesRepository : IRepository<Property>
+	/// <remarks>
+	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialQuery{T})"/>) support every
+	/// field of <see cref="PropertyExposers"/> and return the same properties, with the same values, as a full read: only
+	/// properties in the scheduling scope with a property type are returned, and an unknown property type throws an
+	/// <see cref="ArgumentOutOfRangeException"/>. Every field holds a single value, read with
+	/// <see cref="PartialObject{T}.GetValue{TField}(Net.Messages.SLDataGateway.Exposer{T, TField})"/>, and no data stored
+	/// outside the property is read. Values are looked up by exposer instance, so read them with the exposers that were
+	/// included in the query. The identifier is only returned when <see cref="PropertyExposers.Id"/> is included.
+	/// <see cref="IPartialPageableRepository{T}.ReadPartialPaged(IPartialQuery{T})"/> returns the same objects in pages of 200.
+	/// </remarks>
+	public interface ISchedulingPropertiesRepository : IRepository<Property>, IPartialPageableRepository<Property>
 	{
 		/// <summary>
 		/// Deletes the specified properties from the repository using the provided <see cref="PropertyDeleteOptions"/>.
