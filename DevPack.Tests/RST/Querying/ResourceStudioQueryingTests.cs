@@ -179,6 +179,25 @@ namespace RT_MediaOps.Plan.RST.Querying
 		};
 
 		/// <summary>
+		/// Gets the expected objects, in the expected order, mapped to the applied query with a limit.
+		/// </summary>
+		private Tuple<Capacity[], IQuery<Capacity>>[] CapacityLimitedQueryTestCases => new[]
+		{
+			new Tuple<Capacity[], IQuery<Capacity>>(
+				[Setup.Bandwidth!],
+				CapacityFilter.ToQuery().OrderBy(CapacityExposers.Name).Limit(1)),
+			new Tuple<Capacity[], IQuery<Capacity>>(
+				[Setup.Bandwidth!, Setup.Frequency!],
+				CapacityFilter.ToQuery().OrderBy(CapacityExposers.Name).Limit(2)),
+			new Tuple<Capacity[], IQuery<Capacity>>(
+				[Setup.Reach!, Setup.Frequency!],
+				CapacityFilter.ToQuery().OrderByDescending(CapacityExposers.Name).Limit(2)),
+			new Tuple<Capacity[], IQuery<Capacity>>(
+				[Setup.Bandwidth!, Setup.Frequency!, Setup.Reach!],
+				CapacityFilter.ToQuery().OrderBy(CapacityExposers.Name).Limit(10)),
+		};
+
+		/// <summary>
 		/// Gets the expected objects, in the expected order, mapped to the applied query.
 		/// </summary>
 		private Tuple<ResourceProperty[], IQuery<ResourceProperty>>[] ResourcePropertyQueryTestCases => new[]
@@ -739,6 +758,162 @@ namespace RT_MediaOps.Plan.RST.Querying
 			{
 				QueryAssert.ReadPaged(TestContext.Api.Capacities, expectedObjects, query, 2);
 			}
+		}
+
+		[TestMethod]
+		public void ReadPartialCapacitiesWithQuery_ReturnsSameCapacitiesInSameOrder()
+		{
+			foreach (var (expectedObjects, query) in CapacityQueryTestCases.Concat(CapacityLimitedQueryTestCases))
+			{
+				var partialObjects = TestContext.Api.Capacities.ReadPartial(SelectCapacityIdAndName(query)).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialObjects.Select(x => x.GetValue(CapacityExposers.Id)).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialObjects.Select(x => x.GetValue(CapacityExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedCapacitiesWithQuery_DefaultPageSize_ReturnsSameCapacitiesInOnePage()
+		{
+			foreach (var (expectedObjects, query) in CapacityQueryTestCases.Concat(CapacityLimitedQueryTestCases))
+			{
+				var pages = TestContext.Api.Capacities.ReadPartialPaged(SelectCapacityIdAndName(query)).ToList();
+
+				Assert.AreEqual(1, pages.Count, $"Query: {query}");
+				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(CapacityExposers.Id)).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(CapacityExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedCapacitiesWithQuery_CustomPageSize_SplitsCapacitiesOverPages()
+		{
+			foreach (var (expectedObjects, query) in CapacityQueryTestCases.Concat(CapacityLimitedQueryTestCases))
+			{
+				var pages = TestContext.Api.Capacities.ReadPartialPaged(SelectCapacityIdAndName(query), 2).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(CapacityExposers.Id)).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
+				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
+			}
+
+			Assert.IsTrue(CapacityQueryTestCases.Any(x => x.Item1.Length > 2), "No query returns more than one page.");
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedCapacitiesWithFilter_ReturnsAllCapacities()
+		{
+			var pages = TestContext.Api.Capacities.ReadPartialPaged(SelectCapacityIdAndName(CapacityFilter.ToQuery())).ToList();
+			var objectsById = TestContext.Api.Capacities.Read(CapacityFilter).ToDictionary(x => x.Id);
+
+			Assert.AreEqual(1, pages.Count);
+			Assert.IsFalse(pages[0].HasNextPage);
+			CollectionAssert.AreEquivalent(objectsById.Keys.ToList(), pages[0].Select(x => x.GetValue(CapacityExposers.Id)).ToList());
+
+			foreach (var partialObject in pages[0])
+			{
+				Assert.AreEqual(objectsById[partialObject.GetValue(CapacityExposers.Id)].Name, partialObject.GetValue(CapacityExposers.Name));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialCapacities_CustomExposer_IsEvaluatedOnFullObject()
+		{
+			// The objects are read in full, so any exposer of the type can be projected, also one that is unknown to the filter translator.
+			var customField = new Exposer<Capacity, string>(x => x.Name, "Unknown");
+
+			var partialQuery = new PartialQuery<Capacity>(CapacityFilter.ToQuery()).Include(CapacityExposers.Id).Include(customField);
+			var partialObjectsById = TestContext.Api.Capacities.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(CapacityExposers.Id));
+
+			Assert.AreEqual(Setup.Capacities.Length, partialObjectsById.Count);
+
+			foreach (var expected in Setup.Capacities)
+			{
+				Assert.AreEqual(expected.Name, partialObjectsById[expected.Id].GetValue(customField));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialCapacitiesWithFilter_ReturnsSameValuesAsFullRead()
+		{
+			var partialQuery = new PartialQuery<Capacity>(CapacityFilter.ToQuery())
+				.Include(CapacityExposers.Id)
+				.Include(CapacityExposers.IsMandatory)
+				.Include(CapacityExposers.Name)
+				.Include(CapacityExposers.Units)
+				.Include(CapacityExposers.HasUnits)
+				.Include(CapacityExposers.RangeMin)
+				.Include(CapacityExposers.HasRangeMin)
+				.Include(CapacityExposers.RangeMax)
+				.Include(CapacityExposers.HasRangeMax)
+				.Include(CapacityExposers.StepSize)
+				.Include(CapacityExposers.HasStepSize)
+				.Include(CapacityExposers.Decimals)
+				.Include(CapacityExposers.HasDecimals);
+
+			var partialObjectsById = TestContext.Api.Capacities.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(CapacityExposers.Id));
+			var capacities = TestContext.Api.Capacities.Read(CapacityFilter).ToList();
+
+			Assert.AreEqual(capacities.Count, partialObjectsById.Count);
+
+			foreach (var capacity in capacities)
+			{
+				var partialObject = partialObjectsById[capacity.Id];
+
+				Assert.AreEqual(capacity.Id, partialObject.GetValue(CapacityExposers.Id));
+				Assert.AreEqual(capacity.IsMandatory, partialObject.GetValue(CapacityExposers.IsMandatory));
+				Assert.AreEqual(capacity.Name, partialObject.GetValue(CapacityExposers.Name));
+				Assert.AreEqual(capacity.Units, partialObject.GetValue(CapacityExposers.Units));
+				Assert.AreEqual(!String.IsNullOrEmpty(capacity.Units), partialObject.GetValue(CapacityExposers.HasUnits), capacity.Name);
+				Assert.AreEqual(capacity.RangeMin.GetValueOrDefault(), partialObject.GetValue(CapacityExposers.RangeMin), capacity.Name);
+				Assert.AreEqual(capacity.RangeMin.HasValue, partialObject.GetValue(CapacityExposers.HasRangeMin), capacity.Name);
+				Assert.AreEqual(capacity.RangeMax.GetValueOrDefault(), partialObject.GetValue(CapacityExposers.RangeMax), capacity.Name);
+				Assert.AreEqual(capacity.RangeMax.HasValue, partialObject.GetValue(CapacityExposers.HasRangeMax), capacity.Name);
+				Assert.AreEqual(capacity.StepSize.GetValueOrDefault(), partialObject.GetValue(CapacityExposers.StepSize), capacity.Name);
+				Assert.AreEqual(capacity.StepSize.HasValue, partialObject.GetValue(CapacityExposers.HasStepSize), capacity.Name);
+				Assert.AreEqual(capacity.Decimals.GetValueOrDefault(), partialObject.GetValue(CapacityExposers.Decimals), capacity.Name);
+				Assert.AreEqual(capacity.Decimals.HasValue, partialObject.GetValue(CapacityExposers.HasDecimals), capacity.Name);
+			}
+
+			// Reach has no units, range, step size or decimals, the other capacities have all of them.
+			Assert.IsTrue(capacities.Any(x => x.RangeMin.HasValue && x.RangeMax.HasValue && x.StepSize.HasValue && x.Decimals.HasValue && !String.IsNullOrEmpty(x.Units)), "No capacity with all optional values.");
+			Assert.IsTrue(capacities.Any(x => !x.RangeMin.HasValue && !x.RangeMax.HasValue && !x.StepSize.HasValue && !x.Decimals.HasValue && String.IsNullOrEmpty(x.Units)), "No capacity without optional values.");
+		}
+
+		[TestMethod]
+		public void ReadPartialCapacities_HasFields_MatchTheFilterOnTheSameField()
+		{
+			var hasFields = new[]
+			{
+				CapacityExposers.HasUnits,
+				CapacityExposers.HasRangeMin,
+				CapacityExposers.HasRangeMax,
+				CapacityExposers.HasStepSize,
+				CapacityExposers.HasDecimals,
+			};
+
+			IPartialQuery<Capacity> partialQuery = new PartialQuery<Capacity>(CapacityFilter.ToQuery()).Include(CapacityExposers.Id);
+			foreach (var hasField in hasFields)
+			{
+				partialQuery = partialQuery.Include(hasField);
+			}
+
+			var partialObjects = TestContext.Api.Capacities.ReadPartial(partialQuery).ToList();
+
+			foreach (var hasField in hasFields)
+			{
+				var filteredIds = TestContext.Api.Capacities.Read(CapacityFilter.AND(hasField.Equal(true))).Select(x => x.Id).ToList();
+
+				CollectionAssert.AreEquivalent(filteredIds, partialObjects.Where(x => x.GetValue(hasField)).Select(x => x.GetValue(CapacityExposers.Id)).ToList(), hasField.fieldName);
+				Assert.IsTrue(filteredIds.Count > 0 && filteredIds.Count < partialObjects.Count, $"The setup doesn't cover both values of {hasField.fieldName}.");
+			}
+		}
+
+		private static IPartialQuery<Capacity> SelectCapacityIdAndName(IQuery<Capacity> query)
+		{
+			return new PartialQuery<Capacity>(query).Include(CapacityExposers.Id).Include(CapacityExposers.Name);
 		}
 
 		[TestMethod]
