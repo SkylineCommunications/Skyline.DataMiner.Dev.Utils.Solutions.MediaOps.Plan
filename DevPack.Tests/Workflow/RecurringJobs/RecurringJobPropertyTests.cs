@@ -94,6 +94,47 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 		}
 
 		[TestMethod]
+		public void CreateRecurringJob_FromJobWithProperties_PersistsCopiedPropertiesOnRecurringJobAndNodes()
+		{
+			var prefix = Guid.NewGuid();
+			var property = objectCreator.CreateSchedulingProperty(new StringProperty { Name = $"{prefix}_String", SectionName = "General" });
+			var extraProperty = objectCreator.CreateSchedulingProperty(new StringProperty { Name = $"{prefix}_Extra", SectionName = "General" });
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var start = DateTime.UtcNow.AddHours(1).RoundToNextSecond();
+			var job = new Job { Name = $"{prefix}_Job", Start = start, End = start.AddHours(1), PreRollStart = start, PostRollEnd = start.AddHours(1) };
+			job.AddProperty(new StringPropertySetting(property) { Value = "JobValue" });
+			job.AddCustomProperty(new CustomPropertySetting("JobTag") { Value = "JobValue" });
+			var jobNode = new JobResourcePoolNode(pool);
+			jobNode.AddProperty(new StringPropertySetting(property) { Value = "NodeValue" });
+			jobNode.AddCustomProperty(new CustomPropertySetting("NodeTag") { Value = "NodeValue" });
+			job.NodeGraph.Add(jobNode);
+			job = objectCreator.CreateJob(job);
+
+			var recurringJob = RecurringJob.FromJob(TestContext.Api.Jobs.Read(job.Id));
+			recurringJob.Pattern.RepeatType = RepeatType.Daily;
+			recurringJob.Pattern.RepeatEvery = 1;
+			recurringJob.Pattern.EndDate = DateTime.UtcNow.AddDays(10);
+			recurringJob.AddProperty(new StringPropertySetting(extraProperty) { Value = "Extra" });
+			recurringJob = objectCreator.CreateRecurringJob(recurringJob);
+
+			var stored = TestContext.Api.RecurringJobs.Read(recurringJob.Id);
+			Assert.AreEqual("JobValue", ((StringPropertySetting)stored.PropertySettings.Single(p => p.Id == property.Id)).Value);
+			Assert.AreEqual("Extra", ((StringPropertySetting)stored.PropertySettings.Single(p => p.Id == extraProperty.Id)).Value);
+			Assert.AreEqual("JobValue", stored.CustomPropertySettings.Single(p => p.Name == "JobTag").Value);
+
+			var storedNode = stored.NodeGraph.Nodes.Single();
+			Assert.AreEqual("NodeValue", ((StringPropertySetting)storedNode.PropertySettings.Single()).Value);
+			Assert.AreEqual("NodeValue", storedNode.CustomPropertySettings.Single(p => p.Name == "NodeTag").Value);
+
+			// The source job keeps its own properties; the recurring job's are stored separately.
+			var storedJob = TestContext.Api.Jobs.Read(job.Id);
+			Assert.AreEqual(1, storedJob.PropertySettings.Count);
+			Assert.AreEqual("JobValue", ((StringPropertySetting)storedJob.PropertySettings.Single()).Value);
+		}
+
+		[TestMethod]
 		public void FromRecurringJob_WithPersistedPropertiesOnRecurringJob_CopiesThemToGeneratedJob()
 		{
 			var prefix = Guid.NewGuid();
