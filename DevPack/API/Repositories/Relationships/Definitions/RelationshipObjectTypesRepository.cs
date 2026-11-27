@@ -8,6 +8,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.SDM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	using SLDataGateway.API.Types.Querying;
@@ -18,7 +19,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	internal class RelationshipObjectTypesRepository : Repository, IRelationshipObjectTypesRepository
 	{
 		private readonly RelationshipObjectTypeFilterTranslator filterTranslator = new RelationshipObjectTypeFilterTranslator();
-
+				private readonly DomPartialReader<RelationshipObjectType> partialReader;
 		/// <summary>
 		/// Initializes a new instance of the <see cref="RelationshipObjectTypesRepository"/> class.
 		/// </summary>
@@ -26,6 +27,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public RelationshipObjectTypesRepository(MediaOpsPlanApi planApi)
 			: base(planApi)
 		{
+			partialReader = new DomPartialReader<RelationshipObjectType>(planApi, () => planApi.DomHelpers.SlcRelationshipsHelper.DomHelper, filterTranslator, RelationshipObjectTypePartialFieldMapper.Instance, nameof(RelationshipObjectTypesRepository));
 		}
 
 		/// <summary>
@@ -313,6 +315,24 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public IEnumerable<RelationshipObjectType> Read()
 		{
 			return Read(new TRUEFilterElement<RelationshipObjectType>());
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<SDM.PartialObject<RelationshipObjectType>> ReadPartial(SDM.IPartialQuery<RelationshipObjectType> query)
+		{
+			return partialReader.ReadPartial(query);
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<RelationshipObjectType>>> ReadPartialPaged(SDM.IPartialQuery<RelationshipObjectType> query)
+		{
+			return partialReader.ReadPartialPaged(query, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<RelationshipObjectType>>> ReadPartialPaged(SDM.IPartialQuery<RelationshipObjectType> query, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(query, pageSize);
 		}
 
 		/// <summary>
