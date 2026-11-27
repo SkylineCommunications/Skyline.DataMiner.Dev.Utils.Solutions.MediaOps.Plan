@@ -318,32 +318,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<SDM.PartialObject<RelationshipObjectType>> ReadPartial(SDM.IPartialFilterElement<RelationshipObjectType> partialFilter)
+		public IEnumerable<SDM.PartialObject<RelationshipObjectType>> ReadPartial(SDM.IPartialQuery<RelationshipObjectType> query)
 		{
-			return partialReader.ReadPartial(partialFilter);
+			return partialReader.ReadPartial(query);
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<SDM.PartialObject<RelationshipObjectType>> ReadPartial(SDM.IPartialQuery<RelationshipObjectType> partialQuery)
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<RelationshipObjectType>>> ReadPartialPaged(SDM.IPartialQuery<RelationshipObjectType> query)
 		{
-			return partialReader.ReadPartial(partialQuery);
+			return partialReader.ReadPartialPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<RelationshipObjectType>>> ReadPartialPaged(SDM.IPartialFilterElement<RelationshipObjectType> partialFilter)
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<RelationshipObjectType>>> ReadPartialPaged(SDM.IPartialQuery<RelationshipObjectType> query, int pageSize)
 		{
-			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		/// <inheritdoc/>
-		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<RelationshipObjectType>>> ReadPartialPaged(SDM.IPartialQuery<RelationshipObjectType> partialQuery)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<RelationshipObjectType>>> ReadPartialPaged(SDM.IPartialQuery<RelationshipObjectType> partialQuery, int pageSize)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, pageSize);
+			return partialReader.ReadPartialPaged(query, pageSize);
 		}
 
 		/// <summary>

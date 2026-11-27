@@ -52,13 +52,20 @@ namespace RT_MediaOps.Plan.Relationships
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var nameWithWrongType = new Exposer<RelationshipObjectType, int>(x => x.Name.Length, RelationshipObjectTypeExposers.Name.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => RelationshipObjectTypePartialFieldMapper.CreateSelectedFields(new[] { nameWithWrongType }));
+		}
+
+		[TestMethod]
 		public void CreatePartialObjectType_ConvertsValuesLikeAFullRead()
 		{
 			var id = Guid.NewGuid();
 
 			var partialObjectType = CreatePartialObjectType(CreateDomPartialObject(id, Field(ObjectTypeInfo.ObjectName, "Job")), AllFields);
 
-			Assert.AreEqual(id, partialObjectType.Id);
 			Assert.AreEqual(id, partialObjectType.GetValue(RelationshipObjectTypeExposers.Id));
 			Assert.AreEqual("Job", partialObjectType.GetValue(RelationshipObjectTypeExposers.Name));
 		}
