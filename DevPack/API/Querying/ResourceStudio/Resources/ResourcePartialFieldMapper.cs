@@ -43,29 +43,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private static readonly Dictionary<string, PartialField> Fields = new Dictionary<string, PartialField>
 		{
-			[ResourceExposers.Id.fieldName] = PartialField.Single(x => x.ResourceId),
-			[ResourceExposers.Name.fieldName] = PartialField.Single(x => ReadString(x.PartialObject, ResourceInfo.Name), ResourceInfo.Name),
-			[ResourceExposers.IsFavorite.fieldName] = PartialField.Single(x => x.PartialObject.TryGetValue<bool>(ResourceInfo.Favorite, out var value) && value, ResourceInfo.Favorite),
-			[ResourceExposers.Concurrency.fieldName] = PartialField.Single(x => x.PartialObject.TryGetValue<long>(ResourceInfo.Concurrency, out var value) ? (int)value : 1, ResourceInfo.Concurrency),
-			[ResourceExposers.State.fieldName] = new PartialField(x => ToValues(ReadState(x.PartialObject))) { SelectsStatus = true },
-			[ResourceExposers.ResourcePoolIds.fieldName] = new PartialField(x => x.GetResourcePoolIds().Cast<object>(), ResourceInternalProperties.Pool_Ids),
-			[ResourceExposers.Type.fieldName] = PartialField.Single(x => ResourcePartialReadContext.ToApiType(x.DomType.Value)),
+			[ResourceExposers.Id.fieldName] = PartialField.Scalar(x => x.ResourceId),
+			[ResourceExposers.Name.fieldName] = PartialField.Scalar(x => ReadString(x.PartialObject, ResourceInfo.Name), ResourceInfo.Name),
+			[ResourceExposers.IsFavorite.fieldName] = PartialField.Scalar(x => x.PartialObject.TryGetValue<bool>(ResourceInfo.Favorite, out var value) && value, ResourceInfo.Favorite),
+			[ResourceExposers.Concurrency.fieldName] = PartialField.Scalar(x => x.PartialObject.TryGetValue<long>(ResourceInfo.Concurrency, out var value) ? (int)value : 1, ResourceInfo.Concurrency),
+			[ResourceExposers.State.fieldName] = PartialField.Scalar(x => ReadState(x.PartialObject)).WithSelectsStatus(),
+			[ResourceExposers.ResourcePoolIds.fieldName] = PartialField.Collection(x => x.GetResourcePoolIds(), ResourceInternalProperties.Pool_Ids),
+			[ResourceExposers.Type.fieldName] = PartialField.Scalar(x => ResourcePartialReadContext.ToApiType(x.DomType.Value)),
 
-			[ResourceExposers.Capabilities.CapabilityId.fieldName] = new PartialField(x => x.GetCapabilityIds().Cast<object>(), Capabilities.ProfileParameterID, Capabilities.StringValue)
-			{
-				CanCombineSections = x => x.CanCombineCapabilities(),
-			},
-			[ResourceExposers.Capabilities.Discretes.fieldName] = new PartialField(x => x.GetCapabilityDiscretes(), Capabilities.StringValue),
-			[ResourceExposers.Capacities.CapacityId.fieldName] = new PartialField(x => x.GetCapacityIds().Cast<object>(), Capacities.ProfileParameterID, Capacities.DoubleMaxValue, Capacities.DoubleMinValue)
-			{
-				CanCombineSections = x => x.CanCombineCapacities(),
-				RequiresCapacities = true,
-			},
-			[ResourceExposers.Properties.PropertyId.fieldName] = new PartialField(x => x.GetPropertyIds().Cast<object>(), Properties.Property, Properties.PropertyValue)
-			{
-				CanCombineSections = x => x.CanCombineProperties(),
-			},
-			[ResourceExposers.Properties.Value.fieldName] = new PartialField(x => x.GetPropertyValues(), Properties.PropertyValue),
+			[ResourceExposers.Capabilities.CapabilityId.fieldName] = PartialField.Collection(x => x.GetCapabilityIds(), Capabilities.ProfileParameterID, Capabilities.StringValue)
+				.WithCanCombineSections(x => x.CanCombineCapabilities()),
+			[ResourceExposers.Capabilities.Discretes.fieldName] = PartialField.Collection(x => x.GetCapabilityDiscretes(), Capabilities.StringValue),
+			[ResourceExposers.Capacities.CapacityId.fieldName] = PartialField.Collection(x => x.GetCapacityIds(), Capacities.ProfileParameterID, Capacities.DoubleMaxValue, Capacities.DoubleMinValue)
+				.WithCanCombineSections(x => x.CanCombineCapacities())
+				.WithRequiresCapacities(),
+			[ResourceExposers.Properties.PropertyId.fieldName] = PartialField.Collection(x => x.GetPropertyIds(), Properties.Property, Properties.PropertyValue)
+				.WithCanCombineSections(x => x.CanCombineProperties()),
+			[ResourceExposers.Properties.Value.fieldName] = PartialField.Collection(x => x.GetPropertyValues(), Properties.PropertyValue),
 
 			[ElementResourceExposers.AgentId.fieldName] = PartialField.ForType(ResourceType.Element, x => x.GetElementResourceElement().AgentId, NotOfType, ResourceInternalProperties.ResourceMetadata, ResourceInfo.Element),
 			[ElementResourceExposers.ElementId.fieldName] = PartialField.ForType(ResourceType.Element, x => x.GetElementResourceElement().ElementId, NotOfType, ResourceInternalProperties.ResourceMetadata, ResourceInfo.Element),
@@ -176,9 +170,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return contexts
-				.Select(context => new Skyline.DataMiner.SDM.PartialObject<Resource>(
-					context.ResourceId,
-					selected.Select(x => new KeyValuePair<FieldExposer, IEnumerable<object>>(x.Exposer, x.Field.Read(context).ToList()))))
+				.Select(context =>
+				{
+					var builder = Skyline.DataMiner.SDM.PartialObject<Resource>.CreateBuilder();
+					foreach (var (exposer, field) in selected)
+					{
+						field.Include(builder, exposer, context);
+					}
+
+					return builder.Build();
+				})
 				.ToList();
 		}
 
@@ -225,7 +226,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private static IEnumerable<(FieldExposer Exposer, PartialField Field)> GetFields(IEnumerable<FieldExposer> fields)
 		{
-			var seen = new HashSet<FieldExposer>(FieldExposerComparer.Instance);
+			// Partial objects look up values by exposer instance, so the instances themselves are de-duplicated.
+			var seen = new HashSet<FieldExposer>();
 
 			foreach (var exposer in fields)
 			{
@@ -234,7 +236,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				if (exposer.FilterType != typeof(Resource) || !Fields.TryGetValue(exposer.fieldName, out var field))
+				if (exposer.FilterType != typeof(Resource) || !Fields.TryGetValue(exposer.fieldName, out var field) || !field.ExposerType.IsInstanceOfType(exposer))
 				{
 					throw new NotSupportedException($"Field '{exposer.fieldName}' can't be read partially. Supported fields: {String.Join(", ", Fields.Keys)}.");
 				}
@@ -243,21 +245,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private static IEnumerable<object> ToValues(object value)
-		{
-			return value == null ? Enumerable.Empty<object>() : new[] { value };
-		}
-
-		private static object ReadString(DomPartialObject partialObject, FieldDescriptorID descriptor)
+		private static string ReadString(DomPartialObject partialObject, FieldDescriptorID descriptor)
 		{
 			return partialObject.TryGetValue<string>(descriptor, out var value) ? value : null;
 		}
 
-		private static object ReadState(DomPartialObject partialObject)
+		private static ResourceState ReadState(DomPartialObject partialObject)
 		{
 			if (!partialObject.TryGetValue(DomInstanceExposers.StatusId, out var statusId) || String.IsNullOrEmpty(statusId))
 			{
-				return null;
+				return default;
 			}
 
 			return EnumExtensions.MapEnum<SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToEnum(statusId));
@@ -265,37 +262,77 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private sealed class PartialField
 		{
-			public PartialField(Func<ResourcePartialReadContext, IEnumerable<object>> read, params FieldDescriptorID[] descriptors)
+			private readonly Action<Skyline.DataMiner.SDM.PartialObject<Resource>.Builder, FieldExposer, ResourcePartialReadContext> include;
+
+			private PartialField(Type exposerType, Action<Skyline.DataMiner.SDM.PartialObject<Resource>.Builder, FieldExposer, ResourcePartialReadContext> include, FieldDescriptorID[] descriptors)
 			{
-				Read = read;
+				ExposerType = exposerType;
+				this.include = include;
 				Descriptors = descriptors;
 			}
 
-			public Func<ResourcePartialReadContext, IEnumerable<object>> Read { get; }
+			/// <summary>
+			/// Gets the type the selected exposer must have, so the value can be included with the exposer's field type.
+			/// </summary>
+			public Type ExposerType { get; }
 
 			public IReadOnlyCollection<FieldDescriptorID> Descriptors { get; }
 
-			public bool SelectsStatus { get; set; }
+			public bool SelectsStatus { get; private set; }
 
-			public bool RequiresCapacities { get; set; }
+			public bool RequiresCapacities { get; private set; }
 
 			/// <summary>
-			/// Gets or sets a check whether the values of the sections that occur multiple times can be combined per section.
+			/// Gets a check whether the values of the sections that occur multiple times can be combined per section.
 			/// When it fails for a resource, the field is read from the full resource DOM instance.
 			/// </summary>
-			public Func<ResourcePartialReadContext, bool> CanCombineSections { get; set; }
+			public Func<ResourcePartialReadContext, bool> CanCombineSections { get; private set; }
 
-			public static PartialField Single(Func<ResourcePartialReadContext, object> read, params FieldDescriptorID[] descriptors)
+			public static PartialField Scalar<TField>(Func<ResourcePartialReadContext, TField> read, params FieldDescriptorID[] descriptors)
 			{
-				return new PartialField(x => ToValues(read(x)), descriptors);
+				return new PartialField(
+					typeof(Exposer<Resource, TField>),
+					(builder, exposer, context) => builder.Include((Exposer<Resource, TField>)exposer, read(context)),
+					descriptors);
 			}
 
 			/// <summary>
 			/// Creates a field of a resource subclass, which returns <paramref name="defaultValue"/> for resources of another type, like its exposer does.
 			/// </summary>
-			public static PartialField ForType(ResourceType type, Func<ResourcePartialReadContext, object> read, object defaultValue, params FieldDescriptorID[] descriptors)
+			public static PartialField ForType<TField>(ResourceType type, Func<ResourcePartialReadContext, TField> read, TField defaultValue, params FieldDescriptorID[] descriptors)
 			{
-				return Single(x => x.DomType == type ? read(x) : defaultValue, descriptors);
+				return Scalar(x => x.DomType == type ? read(x) : defaultValue, descriptors);
+			}
+
+			public static PartialField Collection<TField>(Func<ResourcePartialReadContext, IEnumerable<TField>> read, params FieldDescriptorID[] descriptors)
+			{
+				return new PartialField(
+					typeof(DynamicListExposer<Resource, TField>),
+					(builder, exposer, context) => builder.Include((DynamicListExposer<Resource, TField>)exposer, read(context).ToList()),
+					descriptors);
+			}
+
+			public PartialField WithSelectsStatus()
+			{
+				SelectsStatus = true;
+				return this;
+			}
+
+			public PartialField WithRequiresCapacities()
+			{
+				RequiresCapacities = true;
+				return this;
+			}
+
+			public PartialField WithCanCombineSections(Func<ResourcePartialReadContext, bool> canCombineSections)
+			{
+				CanCombineSections = canCombineSections;
+				return this;
+			}
+
+			public void Include(Skyline.DataMiner.SDM.PartialObject<Resource>.Builder builder, FieldExposer exposer, ResourcePartialReadContext context)
+			{
+				include(builder, exposer, context);
 			}
 		}
 	}

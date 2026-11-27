@@ -69,6 +69,14 @@ namespace RT_MediaOps.Plan.RST.Resources
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var nameWithWrongType = new Exposer<Resource, int>(x => x.Name.Length, ResourceExposers.Name.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => ResourcePartialFieldMapper.CreateSelectedFields(new[] { nameWithWrongType }));
+		}
+
+		[TestMethod]
 		public void CreatePartialResource_ConvertsValuesLikeAFullRead()
 		{
 			var id = Guid.NewGuid();
@@ -86,7 +94,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 
 			var partialResource = CreatePartialResource(domPartialObject, ResourceExposers.Id, ResourceExposers.Name, ResourceExposers.IsFavorite, ResourceExposers.Concurrency, ResourceExposers.State, ResourceExposers.ResourcePoolIds, ResourceExposers.Type);
 
-			Assert.AreEqual(id, partialResource.Id);
 			Assert.AreEqual(id, partialResource.GetValue(ResourceExposers.Id));
 			Assert.AreEqual("Resource", partialResource.GetValue(ResourceExposers.Name));
 			Assert.IsTrue(partialResource.GetValue(ResourceExposers.IsFavorite));
@@ -135,9 +142,9 @@ namespace RT_MediaOps.Plan.RST.Resources
 					CreateDomPartialObject(Guid.NewGuid(), (ResourceType)99),
 					CreateDomPartialObject(resourceId, ResourceType.Service),
 				},
-				new[] { ResourceExposers.Type });
+				new FieldExposer[] { ResourceExposers.Id, ResourceExposers.Type });
 
-			Assert.AreEqual(resourceId, partialResources.Single().Id);
+			Assert.AreEqual(resourceId, partialResources.Single().GetValue(ResourceExposers.Id));
 			Assert.AreEqual(typeof(ServiceResource), partialResources.Single().GetValue(ResourceExposers.Type));
 		}
 

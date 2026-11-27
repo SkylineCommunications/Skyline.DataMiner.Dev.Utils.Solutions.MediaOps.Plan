@@ -10,13 +10,14 @@
 	/// Defines methods for managing <see cref="Resource"/> objects.
 	/// </summary>
 	/// <remarks>
-	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialFilterElement{T})"/>) support every
+	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialQuery{T})"/>) support every
 	/// field of <see cref="ResourceExposers"/>, <see cref="ElementResourceExposers"/>, <see cref="ServiceResourceExposers"/>
 	/// and <see cref="VirtualFunctionResourceExposers"/> and return the same resources and values as a full read. Fields that
 	/// hold a value per resource pool, capability, capacity or property (e.g. <see cref="ResourceExposers.ResourcePoolIds"/> or
 	/// <see cref="ResourceExposers.Capabilities.CapabilityId"/>) are read with <see cref="PartialObject{T}.GetValues{TField}(DynamicListExposer{T, TField})"/>.
 	/// Selecting <see cref="ResourceExposers.Capacities.CapacityId"/> reads the capacities once per batch of resources, to order
-	/// them like <see cref="Resource.Capacities"/>.
+	/// them like <see cref="Resource.Capacities"/>. Values are looked up by exposer instance, so read them with the exposers
+	/// that were included in the query. The identifier is only returned when <see cref="ResourceExposers.Id"/> is included.
 	/// <see cref="IPartialPageableRepository{T}.ReadPartialPaged(IPartialQuery{T})"/> returns the same objects in pages of 200.
 	/// </remarks>
 	public interface IResourcesRepository : IRepository<Resource>, IPartialPageableRepository<Resource>

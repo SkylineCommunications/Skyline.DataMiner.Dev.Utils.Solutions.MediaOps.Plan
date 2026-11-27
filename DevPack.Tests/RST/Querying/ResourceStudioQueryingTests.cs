@@ -243,9 +243,9 @@ namespace RT_MediaOps.Plan.RST.Querying
 		{
 			foreach (var (expectedObjects, query) in ResourceQueryTestCases.Concat(ResourceLimitedQueryTestCases))
 			{
-				var partialResources = TestContext.Api.Resources.ReadPartial(query.WithFields(ResourceExposers.Name)).ToList();
+				var partialResources = TestContext.Api.Resources.ReadPartial(SelectResourceIdAndName(query)).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialResources.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialResources.Select(x => x.GetValue(ResourceExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialResources.Select(x => x.GetValue(ResourceExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -255,7 +255,7 @@ namespace RT_MediaOps.Plan.RST.Querying
 		{
 			foreach (var (expectedObjects, query) in ResourceQueryTestCases.Concat(ResourceLimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.Resources.ReadPartialPaged(query.WithFields(ResourceExposers.Name)).ToList();
+				var pages = TestContext.Api.Resources.ReadPartialPaged(SelectResourceIdAndName(query)).ToList();
 
 				if (expectedObjects.Length == 0)
 				{
@@ -265,7 +265,7 @@ namespace RT_MediaOps.Plan.RST.Querying
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(ResourceExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(ResourceExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -273,13 +273,11 @@ namespace RT_MediaOps.Plan.RST.Querying
 		[TestMethod]
 		public void ReadPartialPagedResourcesWithQuery_CustomPageSize_SplitsResourcesOverPages()
 		{
-			var repository = (ResourcesRepository)TestContext.Api.Resources;
-
 			foreach (var (expectedObjects, query) in ResourceQueryTestCases.Concat(ResourceLimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(ResourceExposers.Name), 2).ToList();
+				var pages = TestContext.Api.Resources.ReadPartialPaged(SelectResourceIdAndName(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(ResourceExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -291,15 +289,20 @@ namespace RT_MediaOps.Plan.RST.Querying
 		[TestMethod]
 		public void ReadPartialPagedResourcesWithFilter_ReturnsAllResources()
 		{
-			var pages = TestContext.Api.Resources.ReadPartialPaged(ResourceFilter.WithFields(ResourceExposers.Name, ResourceExposers.Capabilities.CapabilityId)).ToList();
+			var partialQuery = new PartialQuery<Resource>(ResourceFilter.ToQuery())
+				.Include(ResourceExposers.Id)
+				.Include(ResourceExposers.Name)
+				.Include(ResourceExposers.Capabilities.CapabilityId);
+
+			var pages = TestContext.Api.Resources.ReadPartialPaged(partialQuery).ToList();
 			var resourcesById = TestContext.Api.Resources.Read(ResourceFilter).ToDictionary(x => x.Id);
 
 			Assert.AreEqual(1, pages.Count);
-			CollectionAssert.AreEquivalent(resourcesById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+			CollectionAssert.AreEquivalent(resourcesById.Keys.ToList(), pages[0].Select(x => x.GetValue(ResourceExposers.Id)).ToList());
 
 			foreach (var partialResource in pages[0])
 			{
-				var resource = resourcesById[partialResource.Id];
+				var resource = resourcesById[partialResource.GetValue(ResourceExposers.Id)];
 				Assert.AreEqual(resource.Name, partialResource.GetValue(ResourceExposers.Name));
 				CollectionAssert.AreEqual(resource.Capabilities.Select(x => x.Id).ToList(), partialResource.GetValues(ResourceExposers.Capabilities.CapabilityId).ToList(), resource.Name);
 			}
@@ -308,29 +311,29 @@ namespace RT_MediaOps.Plan.RST.Querying
 		[TestMethod]
 		public void ReadPartialResourcesWithFilter_ReturnsSameValuesAsFullRead()
 		{
-			var partialFilter = ResourceFilter.WithFields(
-				ResourceExposers.Id,
-				ResourceExposers.Name,
-				ResourceExposers.IsFavorite,
-				ResourceExposers.Concurrency,
-				ResourceExposers.State,
-				ResourceExposers.ResourcePoolIds,
-				ResourceExposers.Type,
-				ResourceExposers.Capabilities.CapabilityId,
-				ResourceExposers.Capabilities.Discretes,
-				ResourceExposers.Capacities.CapacityId,
-				ResourceExposers.Properties.PropertyId,
-				ResourceExposers.Properties.Value,
-				ElementResourceExposers.AgentId,
-				ElementResourceExposers.ElementId,
-				ServiceResourceExposers.AgentId,
-				ServiceResourceExposers.ServiceId,
-				VirtualFunctionResourceExposers.AgentId,
-				VirtualFunctionResourceExposers.ElementId,
-				VirtualFunctionResourceExposers.FunctionId,
-				VirtualFunctionResourceExposers.FunctionTableIndex);
+			var partialQuery = new PartialQuery<Resource>(ResourceFilter.ToQuery())
+				.Include(ResourceExposers.Id)
+				.Include(ResourceExposers.Name)
+				.Include(ResourceExposers.IsFavorite)
+				.Include(ResourceExposers.Concurrency)
+				.Include(ResourceExposers.State)
+				.Include(ResourceExposers.ResourcePoolIds)
+				.Include(ResourceExposers.Type)
+				.Include(ResourceExposers.Capabilities.CapabilityId)
+				.Include(ResourceExposers.Capabilities.Discretes)
+				.Include(ResourceExposers.Capacities.CapacityId)
+				.Include(ResourceExposers.Properties.PropertyId)
+				.Include(ResourceExposers.Properties.Value)
+				.Include(ElementResourceExposers.AgentId)
+				.Include(ElementResourceExposers.ElementId)
+				.Include(ServiceResourceExposers.AgentId)
+				.Include(ServiceResourceExposers.ServiceId)
+				.Include(VirtualFunctionResourceExposers.AgentId)
+				.Include(VirtualFunctionResourceExposers.ElementId)
+				.Include(VirtualFunctionResourceExposers.FunctionId)
+				.Include(VirtualFunctionResourceExposers.FunctionTableIndex);
 
-			var partialResourcesById = TestContext.Api.Resources.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialResourcesById = TestContext.Api.Resources.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(ResourceExposers.Id));
 			var resources = TestContext.Api.Resources.Read(ResourceFilter).ToList();
 
 			Assert.AreEqual(resources.Count, partialResourcesById.Count);
@@ -383,7 +386,12 @@ namespace RT_MediaOps.Plan.RST.Querying
 		{
 			var unknownField = new Exposer<Resource, string>(x => x.Name, "Unknown");
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Resources.ReadPartial(ResourceFilter.WithFields(unknownField)));
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Resources.ReadPartial(new PartialQuery<Resource>(ResourceFilter.ToQuery()).Include(unknownField)));
+		}
+
+		private static IPartialQuery<Resource> SelectResourceIdAndName(IQuery<Resource> query)
+		{
+			return new PartialQuery<Resource>(query).Include(ResourceExposers.Id).Include(ResourceExposers.Name);
 		}
 
 		[TestMethod]
