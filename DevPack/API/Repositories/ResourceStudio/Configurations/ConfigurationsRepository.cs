@@ -354,21 +354,9 @@
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<PartialObject<Configuration>> ReadPartial(IPartialFilterElement<Configuration> partialFilter)
-		{
-			return partialReader.ReadPartial(partialFilter);
-		}
-
-		/// <inheritdoc/>
 		public IEnumerable<PartialObject<Configuration>> ReadPartial(IPartialQuery<Configuration> partialQuery)
 		{
 			return partialReader.ReadPartial(partialQuery);
-		}
-
-		/// <inheritdoc/>
-		public IEnumerable<IPagedResult<PartialObject<Configuration>>> ReadPartialPaged(IPartialFilterElement<Configuration> partialFilter)
-		{
-			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <inheritdoc/>
@@ -377,7 +365,8 @@
 			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
 		}
 
-		internal IEnumerable<IPagedResult<PartialObject<Configuration>>> ReadPartialPaged(IPartialQuery<Configuration> partialQuery, int pageSize)
+		/// <inheritdoc/>
+		public IEnumerable<IPagedResult<PartialObject<Configuration>>> ReadPartialPaged(IPartialQuery<Configuration> partialQuery, int pageSize)
 		{
 			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}
