@@ -23,6 +23,8 @@ Adding the NuGet package or creating an API client does not install the DOM sche
 
 When deploying both schemas through the DevPacks, install People & Organizations first. See [Installing the DOM schema](Documentation/Advanced%20Topics.md#installing-the-dom-schema) for both steps and the `2.0.X` compatibility requirements.
 
+`PerformPackageInstallation` is `true`. Before tests start, QAOps installs Standard Data Model Registration, Categories, and the full Catalog-selected MediaOps Plan solution, which supplies the People & Organizations schema. The DevPack under test then reconciles the four Plan-owned modules and the test package seeds only missing fixtures. See the [QAOps setup order](QAOpsPackage/README.md#execution-and-package-contents) for the intentional overlap and `2.0.X` compatibility requirements.
+
 ## Documentation
 
 | Document | Description |
@@ -35,70 +37,80 @@ External resources:
 
 - [DataMiner Docs](https://docs.dataminer.services/) - Official DataMiner documentation
 
+## CI/CD pipeline
+
+### Triggers and job order
+
+[Plan CICD](.github/workflows/Plan-CICD.yml) starts with **Validate NuGets** and **Validate Tag Matches Branch**. Afterwards, **Unit Tests** runs in simulation on Windows against `MediaOps Plan.UnitTests.slnf`.
+
+| Trigger | Live regression | Skyline CICD and NuGet publishing |
+| --- | --- | --- |
+| PR targeting any branch | None | None |
+| Current-head PR approval targeting `main` | `MediaOps RT` | None |
+| Current-head PR approval targeting a `*.*.X` branch | `MediaOps RC` | None |
+| Other current-head approvals | None | None |
+| Manual run | The `target_env` input | None |
+| Push to `main` or `*.*.X`, including a merge | None | Skyline CICD build only |
+| Push of a prerelease tag containing `-alpha` | None | Skyline CICD, followed by GitHub Packages publish |
+| Push of another prerelease tag | `MediaOps RC` | Skyline CICD builds and publishes the release to the GitHub Packages after regression passes |
+| Push of a stable release tag | `MediaOps RC` | Skyline CICD builds and publishes the release to the nuget.org after regression passes |
+
+The [Internal DataMiner CICD NuGet Solution workflow](.github/workflows/private-dataminer-cicd-internalnugetsolution.yml) runs separately for branch pushes, PRs, and manual runs.
+
 ## Regression testing
 
-Tests use C# and MSTest. The same test assembly supports in-memory simulation for unit tests and a real DataMiner System for integration tests. Simulation is the default.
+Regression tests use C# and MSTest. The same test suite runs in simulation for unit tests and against a real DataMiner System with MediaOps Plan deployed for integration tests.
 
-Testing uses the following projects:
+The repository contains two test projects:
 
 | Project | Purpose |
 | --- | --- |
-| [DevPack.Tests](./DevPack.Tests) | API and regression tests for properties, resources and resource pools, jobs, workflows, recurring jobs, relationships, querying, and orchestration. |
-| [DevPack.UnitTesting](./DevPack.UnitTesting) | In-memory DataMiner simulation and test helpers. This is a support library, not a separate test suite. |
-| [QAOpsPackage](./QAOpsPackage/README.md) | Builds the `.dmtest` containing the test assembly, source-built libraries, runtime dependencies, and QAOps pipeline scripts. |
+| [DevPack.Tests](./DevPack.Tests) | API and integration tests for properties, resources and resource pools, jobs, workflows, recurring jobs, relationships, querying, and orchestration. |
+| [DevPack.UnitTesting](./DevPack.UnitTesting) | In-memory DataMiner simulation and test helpers. |
+
+## Test results
+
+[View QAOps results](https://qaops-skyline.on.dataminer.services/app/8f36715b-d50d-4463-9d2d-c38170929ee4/Configurations) for the configuration selected by `QAOPS_CONFIGURATION_ID`, or check the `qaops-results` JSON artifact when available.
+
+For legacy CI runs, inspect the **Legacy Integration Tests** job logs and the `legacy-results` TRX artifact when available. The required **Integration Tests** summary identifies the selected backend, target, source SHA, package version, and backend results.
+
+`ElementResourceImport`, `FunctionResourceWithElementLinkImport`, and `HappyPathCrud_ElementLink` report **Inconclusive** when the `Generic Camera` connector is absent on QAOps or in a legacy `MediaOps RC` run. A missing connector fails these tests on legacy `MediaOps RT` and other legacy targets. If the connector is present, the tests run normally.
 
 ### CI execution
 
-The [Plan CICD](./.github/workflows/Plan-CICD.yml) workflow runs validation and the simulated suite before triggering QAOps integration testing for:
+On runs that [require live regression](#triggers-and-job-order), the repository variable **`USE_QAOPS`** selects the integration backend once per run:
 
-- Approval of the current head commit of a non-draft PR from this repository targeting `main` or an RC branch matching `*.*.X`.
-- Manual workflow runs.
-- Pushes of release tags that do not contain `-alpha`.
+- `true`: **QAOps Integration Tests** (`qaops_integration_tests`).
+- `false`: **Legacy Integration Tests** (`legacy_integration_tests`), using [Plan Regression](./.github/workflows/Plan-Regression.yml).
 
-Pushes and merges to `main` or RC branches run validation and simulated tests but do not automatically trigger QAOps testing.
-
-| Case | Validate | Unit Tests | QAOps Integration Tests | Skyline CICD |
-| --- | --- | --- | --- | --- |
-| Open or update PR | Yes | Yes | No | No |
-| Current-head approval to main | Yes | Yes | Yes | No |
-| Current-head approval to RC (`*.*.X`) | Yes | Yes | Yes | No |
-| Current-head approval to other branches | Yes | Yes | No | No |
-| Manual run | Yes | Yes | Yes | No |
-| Push or merge to main or RC | Yes | Yes | No | Yes |
-| Tag containing `-alpha` | Yes | Yes | No | Yes |
-| Other prerelease tag | Yes | Yes | Yes | Yes |
-| Stable release tag | Yes | Yes | Yes | Yes |
-
-Each stage requires the applicable preceding checks to pass. Stable release tags must be contained in the matching `<major>.<minor>.X` branch. NuGet publication runs only on tag pushes. Tags containing `-alpha` skip the QAOps publishing gate; all other release tags require QAOps to pass. Prerelease packages go to GitHub Packages; stable packages go to nuget.org.
-
-The **Unit Tests** job builds [MediaOps Plan.UnitTests.slnf](./MediaOps%20Plan.UnitTests.slnf) with MSBuild and runs the complete test assembly with VSTest and `MEDIAOPS_PLAN_USE_REAL_DMA=false`. Test output is harvested into the runner's temporary directory to avoid Windows path-length limits.
-
-The **Integration Tests** job (`integration_tests`):
-
-1. Builds [QAOpsPackage](./QAOpsPackage/README.md) from the selected commit with a tag-derived or run-specific package version.
-2. Revalidates the current-head approval and target branch immediately before submitting an approval-triggered run.
-3. Submits the exact built `.dmtest` with `dataminer-qaops test-run-and-wait` to the configured QAOps target.
-4. Waits for QAOps to execute the harvested MSTest suite against the real DataMiner System.
-5. Propagates the QAOps exit status to CI and uploads the results JSON as the `qaops-results` artifact when available.
-
-`PerformPackageInstallation` is `true`. Before tests start, QAOps installs Standard Data Model Registration, Categories, and the full Catalog-selected MediaOps Plan solution, which supplies the People & Organizations schema. The DevPack under test then reconciles the four Plan-owned modules and the test package seeds only missing fixtures. See the [QAOps setup order](QAOpsPackage/README.md#execution-and-package-contents) for the intentional overlap and `2.0.X` compatibility requirements.
-
-By default, CI and local execution use eight method-level MSTest workers. QAOps runs targeting the same GitHub environment are queued to prevent overlapping test execution.
+Only the exact values `true` and `false` are accepted. A missing or invalid value fails the integration gate without starting either backend. Unit/build-only runs are unaffected. There is no automatic fallback if the selected backend fails. Both backends use the automatic `GITHUB_TOKEN` to read GitHub Packages and recheck PR approval.
 
 ### QAOps configuration
 
-Select a QAOps target running DataMiner 10.6.11 or later. Configure it through GitHub variables and secrets. The selected GitHub environment can override repository or organization values.
+Configure the **QAOps Integration Tests** job as follows:
 
 | Configuration | Name | Purpose |
 | --- | --- | --- |
-| Variable | `QAOPS_CONFIGURATION_ID` | Selects the QAOps target. |
-| Variable | `QAOPS_TEST_SUITE_ID` | Selects the QAOps test suite. |
-| Secret | `QAOPS_TOKEN` | Authorizes the QAOps run. |
-| Secret | `SKYLINE__SDK__DATAMINERTOKEN` | Allows the SDK to download the Catalog prerequisites during the `.dmtest` build. |
+| Environment variable | `QAOPS_CONFIGURATION_ID` | Selects the QAOps target. |
+| Environment variable | `QAOPS_TEST_SUITE_ID` | Selects the QAOps test suite. |
+| Environment secret | `QAOPS_TOKEN` | Authorizes the QAOps run. |
+| Repository/organization secret | `SKYLINE__SDK__DATAMINERTOKEN` | Downloads Catalog dependencies while building the package. |
 
-`GITHUB_TOKEN` supplies access to the GitHub NuGet feed. The QAOps job uses a Windows runner and .NET 10.
+The QAOps job uses a Windows runner and .NET 10. Tests on the target get their DataMiner credentials from the [QAOps Bridge](./QAOpsPackage/README.md#what-this-package-tests).
 
-Eligible PR approvals targeting `main` use `MediaOps RT`. Eligible approvals targeting RC branches (`*.*.X`) and pushes of release tags that do not contain `-alpha` use `MediaOps RC`. Manual runs use the selected `target_env`, which defaults to `MediaOps RT`. Integration runs are serialized per GitHub environment, so RC approvals and tag-triggered QAOps runs share the same queue.
+### Legacy configuration
+
+Configure the deploy and test jobs in **Plan Regression** as follows:
+
+| Configuration | Name | Purpose |
+| --- | --- | --- |
+| Environment secret | `DATAMINER_TOKEN` | Deploy job: private volatile upload and deployment. The key must target the same System as `DATAMINER_HOST`. |
+| Environment secrets | `DATAMINER_USERNAME`, `DATAMINER_PASSWORD` | Test job: DataMiner test authentication. |
+| Environment variable | `DATAMINER_HOST` | Test job: SLNet host reachable from the Windows runner. |
+| Environment variable (optional) | `DATAMINER_DOMAIN` | Test job: authentication domain. Defaults to empty. |
+| Repository/organization secret | `SKYLINE__SDK__DATAMINERTOKEN` | Deploy job: Catalog dependency downloads during the package build. |
+
+The test job sets `CRED_PREFIX=DATAMINER` and `MEDIAOPS_PLAN_USE_REAL_DMA=true`. It sets `MEDIAOPS_PLAN_LEGACY_RC_RUN=true` only for `MediaOps RC`.
 
 ## Local test setup
 
@@ -166,23 +178,13 @@ The [test runner](./DevPack.Tests/Run-Tests.ps1) supports:
 | `-SettingsPath ".\DevPack.Tests.runsettings"` | Select a runsettings file; this repository-level file is the default. |
 | `-Diagnostics` | Add VSTest runner diagnostics, not DataMiner API-call tracing. |
 
-`-Hours` and `-Until` are mutually exclusive. A time limit repeats tests until the deadline unless an explicit `-Executions` limit is reached first. An active iteration finishes normally when the time limit is reached.
-
-The runner builds once unless `-NoBuild` is supplied. Test failures are recorded without stopping subsequent iterations; the final exit code is nonzero if any iteration fails.
-
-## Test results
-
-[View QAOps results](https://qaops-skyline.on.dataminer.services/app/8f36715b-d50d-4463-9d2d-c38170929ee4/Configurations) for the configuration selected by `QAOPS_CONFIGURATION_ID`. CI also uploads the `qaops-results` JSON artifact when available, with a retention period of 14 days.
+`-Hours` and `-Until` are mutually exclusive. An active iteration finishes normally when the time limit is reached.
 
 Local results are stored at the repository root unless `-ResultsRoot` overrides it:
 
 ```text
 TestResults\<yyyyMMdd-HHmmss-fff>-<pid>[-<name>]\
 ```
-
-Completed sessions contain `run.json`, a copy of the runsettings file, `iterations.csv`, `test-results.csv`, `summary.csv`, and `class-summary.csv`. A build also produces `build.log`. Each `iteration-0001`-style subfolder contains `console.log` and `results.trx`; `-Diagnostics` adds `vstest.log`.
-
-Summary durations are summed or averaged test durations, not parallel wall-clock time. Use `run.json` and `iterations.csv` for elapsed session and iteration times.
 
 ## Adding or maintaining tests
 
