@@ -147,6 +147,25 @@ namespace RT_MediaOps.Plan.RST.Querying
 		};
 
 		/// <summary>
+		/// Gets the expected objects, in the expected order, mapped to the applied query with a limit.
+		/// </summary>
+		private Tuple<Capability[], IQuery<Capability>>[] CapabilityLimitedQueryTestCases => new[]
+		{
+			new Tuple<Capability[], IQuery<Capability>>(
+				[Setup.Location!],
+				CapabilityFilter.ToQuery().OrderBy(CapabilityExposers.Name).Limit(1)),
+			new Tuple<Capability[], IQuery<Capability>>(
+				[Setup.Location!, Setup.Priority!],
+				CapabilityFilter.ToQuery().OrderBy(CapabilityExposers.Name).Limit(2)),
+			new Tuple<Capability[], IQuery<Capability>>(
+				[Setup.Resolution!, Setup.Priority!],
+				CapabilityFilter.ToQuery().OrderByDescending(CapabilityExposers.Name).Limit(2)),
+			new Tuple<Capability[], IQuery<Capability>>(
+				[Setup.Location!, Setup.Priority!, Setup.Resolution!],
+				CapabilityFilter.ToQuery().OrderBy(CapabilityExposers.Name).Limit(10)),
+		};
+
+		/// <summary>
 		/// Gets the expected objects, in the expected order, mapped to the applied query.
 		/// </summary>
 		private Tuple<Capacity[], IQuery<Capacity>>[] CapacityQueryTestCases => new[]
@@ -582,6 +601,117 @@ namespace RT_MediaOps.Plan.RST.Querying
 			{
 				QueryAssert.ReadPaged(TestContext.Api.Capabilities, expectedObjects, query, 2);
 			}
+		}
+
+		[TestMethod]
+		public void ReadPartialCapabilitiesWithQuery_ReturnsSameCapabilitiesInSameOrder()
+		{
+			foreach (var (expectedObjects, query) in CapabilityQueryTestCases.Concat(CapabilityLimitedQueryTestCases))
+			{
+				var partialObjects = TestContext.Api.Capabilities.ReadPartial(SelectCapabilityIdAndName(query)).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialObjects.Select(x => x.GetValue(CapabilityExposers.Id)).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialObjects.Select(x => x.GetValue(CapabilityExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedCapabilitiesWithQuery_DefaultPageSize_ReturnsSameCapabilitiesInOnePage()
+		{
+			foreach (var (expectedObjects, query) in CapabilityQueryTestCases.Concat(CapabilityLimitedQueryTestCases))
+			{
+				var pages = TestContext.Api.Capabilities.ReadPartialPaged(SelectCapabilityIdAndName(query)).ToList();
+
+				Assert.AreEqual(1, pages.Count, $"Query: {query}");
+				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(CapabilityExposers.Id)).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(CapabilityExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedCapabilitiesWithQuery_CustomPageSize_SplitsCapabilitiesOverPages()
+		{
+			foreach (var (expectedObjects, query) in CapabilityQueryTestCases.Concat(CapabilityLimitedQueryTestCases))
+			{
+				var pages = TestContext.Api.Capabilities.ReadPartialPaged(SelectCapabilityIdAndName(query), 2).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(CapabilityExposers.Id)).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
+				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
+			}
+
+			Assert.IsTrue(CapabilityQueryTestCases.Any(x => x.Item1.Length > 2), "No query returns more than one page.");
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedCapabilitiesWithFilter_ReturnsAllCapabilities()
+		{
+			var pages = TestContext.Api.Capabilities.ReadPartialPaged(SelectCapabilityIdAndName(CapabilityFilter.ToQuery())).ToList();
+			var objectsById = TestContext.Api.Capabilities.Read(CapabilityFilter).ToDictionary(x => x.Id);
+
+			Assert.AreEqual(1, pages.Count);
+			Assert.IsFalse(pages[0].HasNextPage);
+			CollectionAssert.AreEquivalent(objectsById.Keys.ToList(), pages[0].Select(x => x.GetValue(CapabilityExposers.Id)).ToList());
+
+			foreach (var partialObject in pages[0])
+			{
+				Assert.AreEqual(objectsById[partialObject.GetValue(CapabilityExposers.Id)].Name, partialObject.GetValue(CapabilityExposers.Name));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialCapabilities_CustomExposer_IsEvaluatedOnFullObject()
+		{
+			// The objects are read in full, so any exposer of the type can be projected, also one that is unknown to the filter translator.
+			var customField = new Exposer<Capability, string>(x => x.Name, "Unknown");
+
+			var partialQuery = new PartialQuery<Capability>(CapabilityFilter.ToQuery()).Include(CapabilityExposers.Id).Include(customField);
+			var partialObjectsById = TestContext.Api.Capabilities.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(CapabilityExposers.Id));
+
+			Assert.AreEqual(Setup.Capabilities.Length, partialObjectsById.Count);
+
+			foreach (var expected in Setup.Capabilities)
+			{
+				Assert.AreEqual(expected.Name, partialObjectsById[expected.Id].GetValue(customField));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialCapabilitiesWithFilter_ReturnsSameValuesAsFullRead()
+		{
+			var partialQuery = new PartialQuery<Capability>(CapabilityFilter.ToQuery())
+				.Include(CapabilityExposers.Id)
+				.Include(CapabilityExposers.Name)
+				.Include(CapabilityExposers.IsMandatory)
+				.Include(CapabilityExposers.IsTimeDependent)
+				.Include(CapabilityExposers.Discretes);
+
+			var partialObjectsById = TestContext.Api.Capabilities.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(CapabilityExposers.Id));
+			var capabilities = TestContext.Api.Capabilities.Read(CapabilityFilter).ToList();
+
+			Assert.AreEqual(capabilities.Count, partialObjectsById.Count);
+
+			foreach (var capability in capabilities)
+			{
+				var partialObject = partialObjectsById[capability.Id];
+
+				Assert.AreEqual(capability.Id, partialObject.GetValue(CapabilityExposers.Id));
+				Assert.AreEqual(capability.Name, partialObject.GetValue(CapabilityExposers.Name));
+				Assert.AreEqual(capability.IsMandatory, partialObject.GetValue(CapabilityExposers.IsMandatory));
+				Assert.AreEqual(capability.IsTimeDependent, partialObject.GetValue(CapabilityExposers.IsTimeDependent));
+				CollectionAssert.AreEqual(capability.Discretes.ToList(), partialObject.GetValues(CapabilityExposers.Discretes).ToList(), capability.Name);
+			}
+
+			Assert.IsTrue(capabilities.Any(x => x.IsMandatory) && capabilities.Any(x => !x.IsMandatory), "The setup doesn't cover both mandatory values.");
+			Assert.IsTrue(capabilities.Any(x => x.IsTimeDependent) && capabilities.Any(x => !x.IsTimeDependent), "The setup doesn't cover both time dependent values.");
+			Assert.IsTrue(capabilities.Any(x => x.Discretes.Count > 1), "No capability with multiple discretes.");
+		}
+
+		private static IPartialQuery<Capability> SelectCapabilityIdAndName(IQuery<Capability> query)
+		{
+			return new PartialQuery<Capability>(query).Include(CapabilityExposers.Id).Include(CapabilityExposers.Name);
 		}
 
 		[TestMethod]
