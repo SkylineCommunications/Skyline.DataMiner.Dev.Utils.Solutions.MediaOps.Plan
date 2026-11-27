@@ -47,6 +47,14 @@ namespace RT_MediaOps.Plan.RST.ResourcePools
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var nameWithWrongType = new Exposer<ResourcePool, int>(x => x.Name.Length, ResourcePoolExposers.Name.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => ResourcePoolPartialFieldMapper.CreateSelectedFields(new[] { nameWithWrongType }));
+		}
+
+		[TestMethod]
 		public void CreateSelectedFields_MultiSectionFields_SelectTheFieldsTheyAreCombinedFrom()
 		{
 			var selectedFields = ResourcePoolPartialFieldMapper.CreateSelectedFields(new FieldExposer[] { ResourcePoolExposers.LinkedResourcePools.SelectionType, ResourcePoolExposers.Capabilities.CapabilityId });
@@ -84,7 +92,6 @@ namespace RT_MediaOps.Plan.RST.ResourcePools
 				ResourcePoolExposers.CategoryId,
 				ResourcePoolExposers.HasCategory);
 
-			Assert.AreEqual(id, partialPool.Id);
 			Assert.AreEqual(id, partialPool.GetValue(ResourcePoolExposers.Id));
 			Assert.AreEqual("Pool", partialPool.GetValue(ResourcePoolExposers.Name));
 			Assert.AreEqual(ResourcePoolState.Complete, partialPool.GetValue(ResourcePoolExposers.State));

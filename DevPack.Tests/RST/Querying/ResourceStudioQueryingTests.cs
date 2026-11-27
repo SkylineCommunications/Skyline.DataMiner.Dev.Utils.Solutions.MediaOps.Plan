@@ -279,9 +279,9 @@ namespace RT_MediaOps.Plan.RST.Querying
 		{
 			foreach (var (expectedObjects, query) in ResourcePoolQueryTestCases.Concat(ResourcePoolLimitedQueryTestCases))
 			{
-				var partialPools = TestContext.Api.ResourcePools.ReadPartial(query.WithFields(ResourcePoolExposers.Name)).ToList();
+				var partialPools = TestContext.Api.ResourcePools.ReadPartial(SelectResourcePoolIdAndName(query)).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialPools.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialPools.Select(x => x.GetValue(ResourcePoolExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialPools.Select(x => x.GetValue(ResourcePoolExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -291,11 +291,11 @@ namespace RT_MediaOps.Plan.RST.Querying
 		{
 			foreach (var (expectedObjects, query) in ResourcePoolQueryTestCases.Concat(ResourcePoolLimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.ResourcePools.ReadPartialPaged(query.WithFields(ResourcePoolExposers.Name)).ToList();
+				var pages = TestContext.Api.ResourcePools.ReadPartialPaged(SelectResourcePoolIdAndName(query)).ToList();
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(ResourcePoolExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(ResourcePoolExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -303,13 +303,11 @@ namespace RT_MediaOps.Plan.RST.Querying
 		[TestMethod]
 		public void ReadPartialPagedResourcePoolsWithQuery_CustomPageSize_SplitsPoolsOverPages()
 		{
-			var repository = (ResourcePoolsRepository)TestContext.Api.ResourcePools;
-
 			foreach (var (expectedObjects, query) in ResourcePoolQueryTestCases.Concat(ResourcePoolLimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(ResourcePoolExposers.Name), 2).ToList();
+				var pages = TestContext.Api.ResourcePools.ReadPartialPaged(SelectResourcePoolIdAndName(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(ResourcePoolExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -321,15 +319,20 @@ namespace RT_MediaOps.Plan.RST.Querying
 		[TestMethod]
 		public void ReadPartialPagedResourcePoolsWithFilter_ReturnsAllPools()
 		{
-			var pages = TestContext.Api.ResourcePools.ReadPartialPaged(ResourcePoolFilter.WithFields(ResourcePoolExposers.Name, ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId)).ToList();
+			var partialQuery = new PartialQuery<ResourcePool>(ResourcePoolFilter.ToQuery())
+				.Include(ResourcePoolExposers.Id)
+				.Include(ResourcePoolExposers.Name)
+				.Include(ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId);
+
+			var pages = TestContext.Api.ResourcePools.ReadPartialPaged(partialQuery).ToList();
 			var poolsById = TestContext.Api.ResourcePools.Read(ResourcePoolFilter).ToDictionary(x => x.Id);
 
 			Assert.AreEqual(1, pages.Count);
-			CollectionAssert.AreEquivalent(poolsById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+			CollectionAssert.AreEquivalent(poolsById.Keys.ToList(), pages[0].Select(x => x.GetValue(ResourcePoolExposers.Id)).ToList());
 
 			foreach (var partialPool in pages[0])
 			{
-				var pool = poolsById[partialPool.Id];
+				var pool = poolsById[partialPool.GetValue(ResourcePoolExposers.Id)];
 				Assert.AreEqual(pool.Name, partialPool.GetValue(ResourcePoolExposers.Name));
 				CollectionAssert.AreEqual(pool.LinkedResourcePools.Select(x => x.LinkedResourcePoolId).ToList(), partialPool.GetValues(ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId).ToList(), pool.Name);
 			}
@@ -338,22 +341,22 @@ namespace RT_MediaOps.Plan.RST.Querying
 		[TestMethod]
 		public void ReadPartialResourcePoolsWithFilter_ReturnsSameValuesAsFullRead()
 		{
-			var partialFilter = ResourcePoolFilter.WithFields(
-				ResourcePoolExposers.Id,
-				ResourcePoolExposers.Name,
-				ResourcePoolExposers.State,
-				ResourcePoolExposers.IconImage,
-				ResourcePoolExposers.HasIconImage,
-				ResourcePoolExposers.Url,
-				ResourcePoolExposers.HasUrl,
-				ResourcePoolExposers.CategoryId,
-				ResourcePoolExposers.HasCategory,
-				ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId,
-				ResourcePoolExposers.LinkedResourcePools.SelectionType,
-				ResourcePoolExposers.Capabilities.CapabilityId,
-				ResourcePoolExposers.Capabilities.Discretes);
+			var partialQuery = new PartialQuery<ResourcePool>(ResourcePoolFilter.ToQuery())
+				.Include(ResourcePoolExposers.Id)
+				.Include(ResourcePoolExposers.Name)
+				.Include(ResourcePoolExposers.State)
+				.Include(ResourcePoolExposers.IconImage)
+				.Include(ResourcePoolExposers.HasIconImage)
+				.Include(ResourcePoolExposers.Url)
+				.Include(ResourcePoolExposers.HasUrl)
+				.Include(ResourcePoolExposers.CategoryId)
+				.Include(ResourcePoolExposers.HasCategory)
+				.Include(ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId)
+				.Include(ResourcePoolExposers.LinkedResourcePools.SelectionType)
+				.Include(ResourcePoolExposers.Capabilities.CapabilityId)
+				.Include(ResourcePoolExposers.Capabilities.Discretes);
 
-			var partialPoolsById = TestContext.Api.ResourcePools.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialPoolsById = TestContext.Api.ResourcePools.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(ResourcePoolExposers.Id));
 			var pools = TestContext.Api.ResourcePools.Read(ResourcePoolFilter).ToList();
 
 			Assert.AreEqual(pools.Count, partialPoolsById.Count);
@@ -390,7 +393,12 @@ namespace RT_MediaOps.Plan.RST.Querying
 		{
 			var unknownField = new Exposer<ResourcePool, string>(x => x.Name, "Unknown");
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.ResourcePools.ReadPartial(ResourcePoolFilter.WithFields(unknownField)));
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.ResourcePools.ReadPartial(new PartialQuery<ResourcePool>(ResourcePoolFilter.ToQuery()).Include(unknownField)));
+		}
+
+		private static IPartialQuery<ResourcePool> SelectResourcePoolIdAndName(IQuery<ResourcePool> query)
+		{
+			return new PartialQuery<ResourcePool>(query).Include(ResourcePoolExposers.Id).Include(ResourcePoolExposers.Name);
 		}
 
 		[TestMethod]
