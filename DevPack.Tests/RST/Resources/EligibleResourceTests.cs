@@ -413,6 +413,67 @@ namespace RT_MediaOps.Plan.RST.Resources
 		}
 
 		[TestMethod]
+		public void GetEligibleResources_JobToIgnore_IgnoresAllUsagesOfThatJobOnly()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var capacity = new NumberCapacity { Name = $"{prefix}_Bandwidth", RangeMin = 0, RangeMax = 100 };
+			objectCreator.CreateCapacity(capacity);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, value =>
+			{
+				value.Concurrency = 4;
+				value.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 100 });
+			});
+
+			var bookedStart = currentTime.AddHours(1);
+			var bookedEnd = currentTime.AddHours(2);
+
+			var firstNode = new JobResourceNode(pool, resource);
+			firstNode.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 30 });
+			var secondNode = new JobResourceNode(pool, resource);
+			secondNode.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 20 });
+			var ignoredJob = CreateConfirmedJob($"{prefix}_IgnoredJob", bookedStart, bookedEnd, firstNode, secondNode);
+
+			var otherNode = new JobResourceNode(pool, resource);
+			otherNode.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 40 });
+			CreateConfirmedJob($"{prefix}_OtherJob", bookedStart, bookedEnd, otherNode);
+
+			var withoutIgnore = new EligibleResourcesContext(bookedStart, bookedEnd)
+			{
+				Filter = ResourceExposers.Id.Equal(resource.Id),
+				IncludeAllCapacityUsages = true,
+			};
+			var withIgnore = new EligibleResourcesContext(bookedStart, bookedEnd)
+			{
+				Filter = ResourceExposers.Id.Equal(resource.Id),
+				IncludeAllCapacityUsages = true,
+				JobIdToIgnore = ignoredJob.Id,
+			};
+
+			var results = TestContext.Api.Resources.GetEligibleResources(new[] { withoutIgnore, withIgnore });
+
+			var usageWithoutIgnore = results[0].EligibleResources.Single().Usage;
+			Assert.AreEqual(1, usageWithoutIgnore.RemainingConcurrency, "Expected the usages of both jobs to count when no job is ignored.");
+			Assert.AreEqual(10m, usageWithoutIgnore.CapacityUsages.OfType<NumberCapacityUsage>().Single().Remaining, "Expected the capacity of both jobs to count when no job is ignored.");
+
+			var usageWithIgnore = results[1].EligibleResources.Single().Usage;
+			Assert.AreEqual(3, usageWithIgnore.RemainingConcurrency, "Expected every usage of the ignored job to be freed, and only those.");
+			Assert.AreEqual(60m, usageWithIgnore.CapacityUsages.OfType<NumberCapacityUsage>().Single().Remaining, "Expected the capacity of every node of the ignored job to be freed, and only that.");
+		}
+
+		[TestMethod]
+		public void GetEligibleResources_JobToIgnoreWithoutBooking_Throws()
+		{
+			var context = new EligibleResourcesContext(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2)) { JobIdToIgnore = Guid.NewGuid() };
+
+			Assert.ThrowsException<ArgumentException>(() => TestContext.Api.Resources.GetEligibleResources(context));
+		}
+
+		[TestMethod]
 		public void GetEligibleResources_TimeDependentCapabilityValueLockedByOverlappingJob_ReturnsResourceOnlyForTheSameValue()
 		{
 			var prefix = Guid.NewGuid();

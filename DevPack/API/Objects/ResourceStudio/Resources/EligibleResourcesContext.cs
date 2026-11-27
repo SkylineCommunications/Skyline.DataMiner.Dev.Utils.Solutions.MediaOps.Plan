@@ -69,6 +69,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public Guid Id { get; } = Guid.NewGuid();
 
 		/// <summary>
+		/// Gets or sets the job of which the booked usage is ignored, as if that job did not use any of its resources. Useful to
+		/// find alternative resources for a job that is already booked. <see cref="Guid.Empty"/> by default.
+		/// </summary>
+		/// <remarks>The job must have a booking.</remarks>
+		public Guid JobIdToIgnore { get; set; }
+
+		/// <summary>
 		/// Gets or sets a value indicating whether the usage of every capacity of the eligible resources is returned, instead of
 		/// only the usage of the requested capacities.
 		/// </summary>

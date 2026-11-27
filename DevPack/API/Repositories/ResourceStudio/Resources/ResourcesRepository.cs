@@ -616,6 +616,7 @@
 		/// <param name="context">The context describing the time range, capabilities, capacities and filter of the eligibility request.</param>
 		/// <returns>The eligible resources and their usage during the requested time range.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is <c>null</c>.</exception>
+		/// <exception cref="ArgumentException">Thrown when <see cref="EligibleResourcesContext.JobIdToIgnore"/> refers to a job without a booking.</exception>
 		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
 		public EligibleResourcesResult GetEligibleResources(EligibleResourcesContext context)
 		{
@@ -640,6 +641,7 @@
 		/// <param name="contexts">The contexts describing the eligibility requests.</param>
 		/// <returns>One result per context, in the order of the contexts.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="contexts"/> is <c>null</c>.</exception>
+		/// <exception cref="ArgumentException">Thrown when the <see cref="EligibleResourcesContext.JobIdToIgnore"/> of a context refers to a job without a booking.</exception>
 		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
 		public IReadOnlyList<EligibleResourcesResult> GetEligibleResources(IEnumerable<EligibleResourcesContext> contexts)
 		{
