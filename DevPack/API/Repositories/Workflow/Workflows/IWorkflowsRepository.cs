@@ -3,10 +3,21 @@
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.SDM;
+
 	/// <summary>
 	/// Defines methods for managing <see cref="Workflow"/> objects.
 	/// </summary>
-	public interface IWorkflowsRepository : IRepository<Workflow>
+	/// <remarks>
+	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialQuery{T})"/>) support every
+	/// field of <see cref="WorkflowExposers"/> and return the same values as a full read. Fields that hold a value per node
+	/// (<see cref="WorkflowExposers.Resources"/> and <see cref="WorkflowExposers.ResourcePools"/>) are read with
+	/// <see cref="PartialObject{T}.GetValues{TField}(Net.Messages.SLDataGateway.DynamicListExposer{T, TField})"/>.
+	/// Values are looked up by exposer instance, so read them with the exposers that were included in the query.
+	/// The identifier is only returned when <see cref="WorkflowExposers.Id"/> is included.
+	/// <see cref="IPartialPageableRepository{T}.ReadPartialPaged(IPartialQuery{T})"/> returns the same objects in pages of 200.
+	/// </remarks>
+	public interface IWorkflowsRepository : IRepository<Workflow>, IPartialPageableRepository<Workflow>
 	{
 		/// <summary>
 		/// Moves the specified <see cref="Workflow"/> from draft to complete state.

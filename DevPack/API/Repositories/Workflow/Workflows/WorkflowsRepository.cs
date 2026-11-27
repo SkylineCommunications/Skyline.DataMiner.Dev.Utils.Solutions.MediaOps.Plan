@@ -6,6 +6,7 @@
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 
 	using SLDataGateway.API.Types.Querying;
@@ -13,9 +14,11 @@
 	internal class WorkflowsRepository : Repository, IWorkflowsRepository
 	{
 		private readonly WorkflowFilterTranslator filterTranslator = new WorkflowFilterTranslator();
+		private readonly DomPartialReader<Workflow> partialReader;
 
 		public WorkflowsRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
+			partialReader = new DomPartialReader<Workflow>(planApi, () => planApi.DomHelpers.SlcWorkflowHelper.DomHelper, filterTranslator, WorkflowPartialFieldMapper.Instance, nameof(WorkflowsRepository));
 		}
 
 		public Workflow Complete(Workflow workflow)
@@ -384,6 +387,21 @@
 			}
 
 			return ReadPagedIterator(query, pageSize);
+		}
+
+		public IEnumerable<SDM.PartialObject<Workflow>> ReadPartial(SDM.IPartialQuery<Workflow> query)
+		{
+			return partialReader.ReadPartial(query);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialQuery<Workflow> query)
+		{
+			return partialReader.ReadPartialPaged(query, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Workflow>>> ReadPartialPaged(SDM.IPartialQuery<Workflow> query, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(query, pageSize);
 		}
 
 		public IReadOnlyCollection<Workflow> Update(IEnumerable<Workflow> oToUpdate)
