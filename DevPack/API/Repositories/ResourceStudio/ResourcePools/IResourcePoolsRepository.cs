@@ -3,12 +3,24 @@
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.SDM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	/// <summary>
 	/// Defines methods for managing <see cref="ResourcePool"/> objects, including state transitions.
 	/// </summary>
-	public interface IResourcePoolsRepository : IRepository<ResourcePool>
+	/// <remarks>
+	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialQuery{T})"/>) support every
+	/// field of <see cref="ResourcePoolExposers"/> and return the same values as a full read. Fields that hold a value per
+	/// linked resource pool or capability (e.g. <see cref="ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId"/> or
+	/// <see cref="ResourcePoolExposers.Capabilities.CapabilityId"/>) are read with
+	/// <see cref="PartialObject{T}.GetValues{TField}(Net.Messages.SLDataGateway.DynamicListExposer{T, TField})"/>;
+	/// <see cref="ResourcePoolExposers.Capabilities.Discretes"/> returns the discrete values of all capabilities.
+	/// Values are looked up by exposer instance, so read them with the exposers that were included in the query.
+	/// The identifier is only returned when <see cref="ResourcePoolExposers.Id"/> is included.
+	/// <see cref="IPartialPageableRepository{T}.ReadPartialPaged(IPartialQuery{T})"/> returns the same objects in pages of 200.
+	/// </remarks>
+	public interface IResourcePoolsRepository : IRepository<ResourcePool>, IPartialPageableRepository<ResourcePool>
 	{
 		/// <summary>
 		/// Moves the specified <see cref="ResourcePool"/> from draft to complete state.
