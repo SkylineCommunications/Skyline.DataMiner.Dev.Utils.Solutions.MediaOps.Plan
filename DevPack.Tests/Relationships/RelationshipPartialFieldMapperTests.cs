@@ -63,6 +63,14 @@ namespace RT_MediaOps.Plan.Relationships
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var objectNameWithWrongType = new Exposer<Relationship, int>(x => x.Parent.ObjectName.Length, RelationshipExposers.Parent.ObjectName.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => RelationshipPartialFieldMapper.CreateSelectedFields(new[] { objectNameWithWrongType }));
+		}
+
+		[TestMethod]
 		public void CreatePartialRelationship_ConvertsValuesLikeAFullRead()
 		{
 			var id = Guid.NewGuid();
@@ -84,7 +92,6 @@ namespace RT_MediaOps.Plan.Relationships
 
 			var partialRelationship = CreatePartialRelationship(domPartialObject, AllFields);
 
-			Assert.AreEqual(id, partialRelationship.Id);
 			Assert.AreEqual(id, partialRelationship.GetValue(RelationshipExposers.Id));
 			Assert.AreEqual(parentTypeId, partialRelationship.GetValue(RelationshipExposers.Parent.ObjectTypeId));
 			Assert.AreEqual("parent", partialRelationship.GetValue(RelationshipExposers.Parent.ObjectId));

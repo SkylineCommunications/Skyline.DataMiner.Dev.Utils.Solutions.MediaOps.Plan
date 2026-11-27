@@ -23,7 +23,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	{
 		private static readonly Dictionary<string, PartialField> Fields = new Dictionary<string, PartialField>
 		{
-			[RelationshipExposers.Id.fieldName] = new PartialField(x => x.Id.Id),
+			[RelationshipExposers.Id.fieldName] = PartialField.Create(x => x.Id.Id),
 
 			[RelationshipExposers.Parent.ObjectTypeId.fieldName] = PartialField.ForGuid(LinkInfo.ParentObjectType),
 			[RelationshipExposers.Parent.ObjectId.fieldName] = PartialField.ForString(LinkInfo.ParentObjectID),
@@ -83,7 +83,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="domPartialObjects">The partial link DOM instances, read with <see cref="CreateSelectedFields"/>.</param>
 		/// <param name="fields">The fields to return.</param>
 		/// <exception cref="NotSupportedException">Thrown when one of the fields can't be read partially.</exception>
-		public static IReadOnlyList<Skyline.DataMiner.SDM.PartialObject<Relationship>> CreatePartialRelationships(IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
+		public static IReadOnlyList<PartialObject<Relationship>> CreatePartialRelationships(IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
 		{
 			if (domPartialObjects == null)
 			{
@@ -98,9 +98,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var selected = GetFields(fields).ToList();
 
 			return domPartialObjects
-				.Select(domPartialObject => new Skyline.DataMiner.SDM.PartialObject<Relationship>(
-					domPartialObject.Id.Id,
-					selected.Select(x => new KeyValuePair<FieldExposer, IEnumerable<object>>(x.Exposer, ToValues(x.Field.Read(domPartialObject))))))
+				.Select(domPartialObject =>
+				{
+					var builder = PartialObject<Relationship>.CreateBuilder();
+					foreach (var (exposer, field) in selected)
+					{
+						field.Include(builder, exposer, domPartialObject);
+					}
+
+					return builder.Build();
+				})
 				.ToList();
 		}
 
@@ -109,14 +116,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return CreateSelectedFields(fields);
 		}
 
-		IReadOnlyList<Skyline.DataMiner.SDM.PartialObject<Relationship>> IDomPartialFieldMapper<Relationship>.CreatePartialObjects(MediaOpsPlanApi planApi, IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
+		IReadOnlyList<PartialObject<Relationship>> IDomPartialFieldMapper<Relationship>.CreatePartialObjects(MediaOpsPlanApi planApi, IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
 		{
 			return CreatePartialRelationships(domPartialObjects, fields);
 		}
 
 		private static IEnumerable<(FieldExposer Exposer, PartialField Field)> GetFields(IEnumerable<FieldExposer> fields)
 		{
-			var seen = new HashSet<FieldExposer>(FieldExposerComparer.Instance);
+			// Partial objects look up values by exposer instance, so the instances themselves are de-duplicated.
+			var seen = new HashSet<FieldExposer>();
 
 			foreach (var exposer in fields)
 			{
@@ -125,7 +133,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				if (exposer.FilterType != typeof(Relationship) || !Fields.TryGetValue(exposer.fieldName, out var field))
+				if (exposer.FilterType != typeof(Relationship) || !Fields.TryGetValue(exposer.fieldName, out var field) || !field.ExposerType.IsInstanceOfType(exposer))
 				{
 					throw new NotSupportedException($"Field '{exposer.fieldName}' can't be read partially. Supported fields: {String.Join(", ", Fields.Keys)}.");
 				}
@@ -134,36 +142,50 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private static IReadOnlyList<object> ToValues(object value)
-		{
-			return value == null ? Array.Empty<object>() : new[] { value };
-		}
-
 		private sealed class PartialField
 		{
-			public PartialField(Func<DomPartialObject, object> read, FieldDescriptorID descriptor = null)
+			private readonly Action<PartialObject<Relationship>.Builder, FieldExposer, DomPartialObject> include;
+
+			private PartialField(Type exposerType, Action<PartialObject<Relationship>.Builder, FieldExposer, DomPartialObject> include, FieldDescriptorID descriptor)
 			{
-				Read = read;
+				ExposerType = exposerType;
+				this.include = include;
 				Descriptor = descriptor;
 			}
 
-			public Func<DomPartialObject, object> Read { get; }
+			/// <summary>
+			/// Gets the type the selected exposer must have, so the value can be included with the exposer's field type.
+			/// </summary>
+			public Type ExposerType { get; }
 
 			public FieldDescriptorID Descriptor { get; }
 
+			public static PartialField Create<TField>(Func<DomPartialObject, TField> read, FieldDescriptorID descriptor = null)
+			{
+				return new PartialField(
+					typeof(Exposer<Relationship, TField>),
+					(builder, exposer, domPartialObject) => builder.Include((Exposer<Relationship, TField>)exposer, read(domPartialObject)),
+					descriptor);
+			}
+
 			public static PartialField ForGuid(FieldDescriptorID descriptor)
 			{
-				return new PartialField(x => x.TryGetValue<Guid>(descriptor, out var value) ? value : Guid.Empty, descriptor);
+				return Create(x => x.TryGetValue<Guid>(descriptor, out var value) ? value : Guid.Empty, descriptor);
 			}
 
 			public static PartialField ForString(FieldDescriptorID descriptor)
 			{
-				return new PartialField(x => x.TryGetValue<string>(descriptor, out var value) ? value : null, descriptor);
+				return Create(x => x.TryGetValue<string>(descriptor, out var value) ? value : null, descriptor);
 			}
 
 			public static PartialField ForLong(FieldDescriptorID descriptor)
 			{
-				return new PartialField(x => x.TryGetValue<long>(descriptor, out var value) ? value : 0L, descriptor);
+				return Create(x => x.TryGetValue<long>(descriptor, out var value) ? value : 0L, descriptor);
+			}
+
+			public void Include(PartialObject<Relationship>.Builder builder, FieldExposer exposer, DomPartialObject domPartialObject)
+			{
+				include(builder, exposer, domPartialObject);
 			}
 		}
 	}

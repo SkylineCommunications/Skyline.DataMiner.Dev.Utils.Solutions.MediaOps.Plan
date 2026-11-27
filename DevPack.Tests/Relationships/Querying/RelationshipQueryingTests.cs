@@ -205,9 +205,9 @@ namespace RT_MediaOps.Plan.Relationships.Querying
 		{
 			foreach (var (expectedObjects, query) in RelationshipQueryTestCases.Concat(RelationshipLimitedQueryTestCases))
 			{
-				var partialRelationships = TestContext.Api.Relationships.ReadPartial(query.WithFields(RelationshipExposers.Parent.ObjectName)).ToList();
+				var partialRelationships = TestContext.Api.Relationships.ReadPartial(SelectIdAndParentName(query)).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialRelationships.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialRelationships.Select(x => x.GetValue(RelationshipExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Parent.ObjectName).ToList(), partialRelationships.Select(x => x.GetValue(RelationshipExposers.Parent.ObjectName)).ToList(), $"Query: {query}");
 			}
 		}
@@ -217,11 +217,11 @@ namespace RT_MediaOps.Plan.Relationships.Querying
 		{
 			foreach (var (expectedObjects, query) in RelationshipQueryTestCases.Concat(RelationshipLimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.Relationships.ReadPartialPaged(query.WithFields(RelationshipExposers.Parent.ObjectName)).ToList();
+				var pages = TestContext.Api.Relationships.ReadPartialPaged(SelectIdAndParentName(query)).ToList();
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(RelationshipExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Parent.ObjectName).ToList(), pages[0].Select(x => x.GetValue(RelationshipExposers.Parent.ObjectName)).ToList(), $"Query: {query}");
 			}
 		}
@@ -229,13 +229,11 @@ namespace RT_MediaOps.Plan.Relationships.Querying
 		[TestMethod]
 		public void ReadPartialPagedRelationshipsWithQuery_CustomPageSize_SplitsRelationshipsOverPages()
 		{
-			var repository = (RelationshipsRepository)TestContext.Api.Relationships;
-
 			foreach (var (expectedObjects, query) in RelationshipQueryTestCases.Concat(RelationshipLimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(RelationshipExposers.Parent.ObjectName), 2).ToList();
+				var pages = TestContext.Api.Relationships.ReadPartialPaged(SelectIdAndParentName(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(RelationshipExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -247,15 +245,20 @@ namespace RT_MediaOps.Plan.Relationships.Querying
 		[TestMethod]
 		public void ReadPartialPagedRelationshipsWithFilter_ReturnsAllRelationships()
 		{
-			var pages = TestContext.Api.Relationships.ReadPartialPaged(RelationshipFilter.WithFields(RelationshipExposers.Parent.ObjectId, RelationshipExposers.Child.ObjectId)).ToList();
+			var partialQuery = new PartialQuery<Relationship>(RelationshipFilter.ToQuery())
+				.Include(RelationshipExposers.Id)
+				.Include(RelationshipExposers.Parent.ObjectId)
+				.Include(RelationshipExposers.Child.ObjectId);
+
+			var pages = TestContext.Api.Relationships.ReadPartialPaged(partialQuery).ToList();
 			var relationshipsById = TestContext.Api.Relationships.Read(RelationshipFilter).ToDictionary(x => x.Id);
 
 			Assert.AreEqual(1, pages.Count);
-			CollectionAssert.AreEquivalent(relationshipsById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+			CollectionAssert.AreEquivalent(relationshipsById.Keys.ToList(), pages[0].Select(x => x.GetValue(RelationshipExposers.Id)).ToList());
 
 			foreach (var partialRelationship in pages[0])
 			{
-				var relationship = relationshipsById[partialRelationship.Id];
+				var relationship = relationshipsById[partialRelationship.GetValue(RelationshipExposers.Id)];
 				Assert.AreEqual(relationship.Parent.ObjectId, partialRelationship.GetValue(RelationshipExposers.Parent.ObjectId));
 				Assert.AreEqual(relationship.Child.ObjectId, partialRelationship.GetValue(RelationshipExposers.Child.ObjectId));
 			}
@@ -264,20 +267,20 @@ namespace RT_MediaOps.Plan.Relationships.Querying
 		[TestMethod]
 		public void ReadPartialRelationshipsWithFilter_ReturnsSameValuesAsFullRead()
 		{
-			var partialFilter = RelationshipFilter.WithFields(
-				RelationshipExposers.Id,
-				RelationshipExposers.Parent.ObjectTypeId,
-				RelationshipExposers.Parent.ObjectId,
-				RelationshipExposers.Parent.ObjectName,
-				RelationshipExposers.Parent.Url,
-				RelationshipExposers.Parent.Order,
-				RelationshipExposers.Child.ObjectTypeId,
-				RelationshipExposers.Child.ObjectId,
-				RelationshipExposers.Child.ObjectName,
-				RelationshipExposers.Child.Url,
-				RelationshipExposers.Child.Order);
+			var partialQuery = new PartialQuery<Relationship>(RelationshipFilter.ToQuery())
+				.Include(RelationshipExposers.Id)
+				.Include(RelationshipExposers.Parent.ObjectTypeId)
+				.Include(RelationshipExposers.Parent.ObjectId)
+				.Include(RelationshipExposers.Parent.ObjectName)
+				.Include(RelationshipExposers.Parent.Url)
+				.Include(RelationshipExposers.Parent.Order)
+				.Include(RelationshipExposers.Child.ObjectTypeId)
+				.Include(RelationshipExposers.Child.ObjectId)
+				.Include(RelationshipExposers.Child.ObjectName)
+				.Include(RelationshipExposers.Child.Url)
+				.Include(RelationshipExposers.Child.Order);
 
-			var partialRelationshipsById = TestContext.Api.Relationships.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialRelationshipsById = TestContext.Api.Relationships.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(RelationshipExposers.Id));
 			var relationships = TestContext.Api.Relationships.Read(RelationshipFilter).ToList();
 
 			Assert.AreEqual(Setup.Relationships.Length, relationships.Count);
@@ -304,7 +307,7 @@ namespace RT_MediaOps.Plan.Relationships.Querying
 		[TestMethod]
 		public void ReadPartialRelationships_OnlyId_ReturnsIds()
 		{
-			var partialRelationships = TestContext.Api.Relationships.ReadPartial(RelationshipFilter.WithFields(RelationshipExposers.Id)).ToList();
+			var partialRelationships = TestContext.Api.Relationships.ReadPartial(new PartialQuery<Relationship>(RelationshipFilter.ToQuery()).Include(RelationshipExposers.Id)).ToList();
 
 			CollectionAssert.AreEquivalent(Setup.Relationships.Select(x => x.Id).ToList(), partialRelationships.Select(x => x.GetValue(RelationshipExposers.Id)).ToList());
 		}
@@ -314,7 +317,12 @@ namespace RT_MediaOps.Plan.Relationships.Querying
 		{
 			var unknownField = new Exposer<Relationship, string>(x => x.Parent.ObjectId, "Unknown");
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Relationships.ReadPartial(RelationshipFilter.WithFields(unknownField)));
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Relationships.ReadPartial(new PartialQuery<Relationship>(RelationshipFilter.ToQuery()).Include(unknownField)));
+		}
+
+		private static IPartialQuery<Relationship> SelectIdAndParentName(IQuery<Relationship> query)
+		{
+			return new PartialQuery<Relationship>(query).Include(RelationshipExposers.Id).Include(RelationshipExposers.Parent.ObjectName);
 		}
 
 		[TestMethod]
