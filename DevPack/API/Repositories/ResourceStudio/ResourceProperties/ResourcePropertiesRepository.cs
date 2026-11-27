@@ -460,29 +460,19 @@
 			return ReadPaged(new TRUEFilterElement<ResourceProperty>(), pageSize);
 		}
 
-		public IEnumerable<PartialObject<ResourceProperty>> ReadPartial(IPartialFilterElement<ResourceProperty> partialFilter)
+		public IEnumerable<PartialObject<ResourceProperty>> ReadPartial(IPartialQuery<ResourceProperty> query)
 		{
-			return partialReader.ReadPartial(partialFilter);
+			return partialReader.ReadPartial(query);
 		}
 
-		public IEnumerable<PartialObject<ResourceProperty>> ReadPartial(IPartialQuery<ResourceProperty> partialQuery)
+		public IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialQuery<ResourceProperty> query)
 		{
-			return partialReader.ReadPartial(partialQuery);
+			return partialReader.ReadPartialPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
-		public IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialFilterElement<ResourceProperty> partialFilter)
+		public IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialQuery<ResourceProperty> query, int pageSize)
 		{
-			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		public IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialQuery<ResourceProperty> partialQuery)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		internal IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialQuery<ResourceProperty> partialQuery, int pageSize)
-		{
-			return partialReader.ReadPartialPaged(partialQuery, pageSize);
+			return partialReader.ReadPartialPaged(query, pageSize);
 		}
 
 		/// <summary>

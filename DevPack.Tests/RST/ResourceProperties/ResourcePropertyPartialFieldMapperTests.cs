@@ -39,6 +39,14 @@ namespace RT_MediaOps.Plan.RST.ResourceProperties
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var nameWithWrongType = new Exposer<ResourceProperty, int>(x => x.Name.Length, ResourcePropertyExposers.Name.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => ResourcePropertyPartialFieldMapper.CreateSelectedFields(new[] { nameWithWrongType }));
+		}
+
+		[TestMethod]
 		public void CreatePartialResourceProperty_ConvertsValuesLikeAFullRead()
 		{
 			var id = Guid.NewGuid();
@@ -48,7 +56,6 @@ namespace RT_MediaOps.Plan.RST.ResourceProperties
 				ResourcePropertyExposers.Id,
 				ResourcePropertyExposers.Name);
 
-			Assert.AreEqual(id, partialProperty.Id);
 			Assert.AreEqual(id, partialProperty.GetValue(ResourcePropertyExposers.Id));
 			Assert.AreEqual("Color", partialProperty.GetValue(ResourcePropertyExposers.Name));
 		}
