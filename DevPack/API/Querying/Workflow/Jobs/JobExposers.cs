@@ -5,6 +5,7 @@
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.SDM.Exposers;
 
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="Job"/> objects.
@@ -123,6 +124,14 @@
 		public static readonly DynamicListExposer<Job, Guid> Resources = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId), "Resources"));
 
 		/// <summary>
+		/// Gets a collection exposer for the resources referenced by the nodes of the <see cref="Job.NodeGraph"/> property.
+		/// </summary>
+		/// <remarks>
+		/// Use this exposer to select the field in a partial read, and <see cref="Resources"/> to filter on it.
+		/// </remarks>
+		public static readonly CollectionExposer<Job, Guid> ResourcesCollection = new CollectionExposer<Job, Guid>((obj) => obj.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId), "ResourcesCollection");
+
+		/// <summary>
 		/// Gets a dynamic list exposer for the resource pools referenced by the nodes of the <see cref="Job.NodeGraph"/> property.
 		/// </summary>
 		/// <remarks>
@@ -131,6 +140,14 @@
 		/// <see cref="Comparer.NotContains"/> comparisons are supported.
 		/// </remarks>
 		public static readonly DynamicListExposer<Job, Guid> ResourcePools = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.NodeGraph.Nodes.Select(NodeReferences.GetResourcePoolId).Where(x => x != Guid.Empty), "ResourcePools"));
+
+		/// <summary>
+		/// Gets a collection exposer for the resource pools referenced by the nodes of the <see cref="Job.NodeGraph"/> property.
+		/// </summary>
+		/// <remarks>
+		/// Use this exposer to select the field in a partial read, and <see cref="ResourcePools"/> to filter on it.
+		/// </remarks>
+		public static readonly CollectionExposer<Job, Guid> ResourcePoolsCollection = new CollectionExposer<Job, Guid>((obj) => obj.NodeGraph.Nodes.Select(NodeReferences.GetResourcePoolId).Where(x => x != Guid.Empty), "ResourcePoolsCollection");
 
 		/// <summary>
 		/// Provides exposers for querying and filtering the nodes of the <see cref="Job.NodeGraph"/> property.
@@ -145,6 +162,14 @@
 			/// version of the API have no value stored and are not returned by this exposer.
 			/// </remarks>
 			public static readonly DynamicListExposer<Job, ConfigurationState> ConfigurationState = DynamicListExposer<Job, ConfigurationState>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.NodeGraph.Nodes.Where(x => x != null).Select(x => x.ConfigurationState), "Nodes.ConfigurationState"));
+
+			/// <summary>
+			/// Gets a collection exposer for the <see cref="JobNode.ConfigurationState"/> property of every node.
+			/// </summary>
+			/// <remarks>
+			/// Use this exposer to select the field in a partial read, and <see cref="ConfigurationState"/> to filter on it.
+			/// </remarks>
+			public static readonly CollectionExposer<Job, ConfigurationState> ConfigurationStateCollection = new CollectionExposer<Job, ConfigurationState>((obj) => obj.NodeGraph.Nodes.Where(x => x != null).Select(x => x.ConfigurationState), "Nodes.ConfigurationStateCollection");
 		}
 
 		/// <summary>
@@ -158,9 +183,18 @@
 			public static readonly DynamicListExposer<Job, Guid> CapabilityId = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.OrchestrationSettings.Capabilities.Where(x => x != null).Select(x => x.Id), "Capabilities.Id"));
 
 			/// <summary>
+			/// Gets a collection exposer for capability IDs. Use it to select the field in a partial read, and <see cref="CapabilityId"/> to filter on it.
+			/// </summary>
+			public static readonly CollectionExposer<Job, Guid> CapabilityIdCollection = new CollectionExposer<Job, Guid>((obj) => obj.OrchestrationSettings.Capabilities.Where(x => x != null).Select(x => x.Id), "Capabilities.IdCollection");
+			/// <summary>
 			/// Gets a dynamic list exposer for capability discrete values.
 			/// </summary>
 			public static readonly DynamicListExposer<Job, string> Discretes = DynamicListExposer<Job, string>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.OrchestrationSettings.Capabilities.Where(x => x != null).Select(x => x.Value).Where(x => x != null), "Capabilities.Discretes"));
+
+			/// <summary>
+			/// Gets a collection exposer for capability discrete values. Use it to select the field in a partial read, and <see cref="Discretes"/> to filter on it.
+			/// </summary>
+			public static readonly CollectionExposer<Job, string> DiscretesCollection = new CollectionExposer<Job, string>((obj) => obj.OrchestrationSettings.Capabilities.Where(x => x != null).Select(x => x.Value).Where(x => x != null), "Capabilities.DiscretesCollection");
 		}
 
 		/// <summary>
@@ -172,6 +206,11 @@
 			/// Gets a dynamic list exposer for capacity IDs.
 			/// </summary>
 			public static readonly DynamicListExposer<Job, Guid> CapacityId = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.OrchestrationSettings.Capacities.Where(x => x != null).Select(x => x.Id), "Capacities.Id"));
+
+			/// <summary>
+			/// Gets a collection exposer for capacity IDs. Use it to select the field in a partial read, and <see cref="CapacityId"/> to filter on it.
+			/// </summary>
+			public static readonly CollectionExposer<Job, Guid> CapacityIdCollection = new CollectionExposer<Job, Guid>((obj) => obj.OrchestrationSettings.Capacities.Where(x => x != null).Select(x => x.Id), "Capacities.IdCollection");
 		}
 
 		/// <summary>
@@ -183,6 +222,11 @@
 			/// Gets a dynamic list exposer for configuration IDs.
 			/// </summary>
 			public static readonly DynamicListExposer<Job, Guid> ConfigurationId = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.OrchestrationSettings.Configurations.Where(x => x != null).Select(x => x.Id), "Configurations.Id"));
+
+			/// <summary>
+			/// Gets a collection exposer for configuration IDs. Use it to select the field in a partial read, and <see cref="ConfigurationId"/> to filter on it.
+			/// </summary>
+			public static readonly CollectionExposer<Job, Guid> ConfigurationIdCollection = new CollectionExposer<Job, Guid>((obj) => obj.OrchestrationSettings.Configurations.Where(x => x != null).Select(x => x.Id), "Configurations.IdCollection");
 		}
 
 		/// <summary>
@@ -194,6 +238,11 @@
 			/// Gets a dynamic list exposer for property IDs.
 			/// </summary>
 			public static readonly DynamicListExposer<Job, Guid> PropertyId = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.PropertySettings.Where(x => x != null).Select(x => x.Id), "Properties.Id"));
+
+			/// <summary>
+			/// Gets a collection exposer for property IDs. Use it to select the field in a partial read, and <see cref="PropertyId"/> to filter on it.
+			/// </summary>
+			public static readonly CollectionExposer<Job, Guid> PropertyIdCollection = new CollectionExposer<Job, Guid>((obj) => obj.PropertySettings.Where(x => x != null).Select(x => x.Id), "Properties.IdCollection");
 		}
 
 		/// <summary>
@@ -207,9 +256,18 @@
 			public static readonly DynamicListExposer<Job, string> Code = DynamicListExposer<Job, string>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.Errors.Where(x => x != null).Select(x => x.Code).Where(x => x != null), "Errors.Code"));
 
 			/// <summary>
+			/// Gets a collection exposer for the <see cref="JobError.Code"/> property. Use it to select the field in a partial read, and <see cref="Code"/> to filter on it.
+			/// </summary>
+			public static readonly CollectionExposer<Job, string> CodeCollection = new CollectionExposer<Job, string>((obj) => obj.Errors.Where(x => x != null).Select(x => x.Code).Where(x => x != null), "Errors.CodeCollection");
+			/// <summary>
 			/// Gets a dynamic list exposer for the <see cref="JobError.Message"/> property. A job matches when one of its errors matches.
 			/// </summary>
 			public static readonly DynamicListExposer<Job, string> Message = DynamicListExposer<Job, string>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.Errors.Where(x => x != null).Select(x => x.Message).Where(x => x != null), "Errors.Message"));
+
+			/// <summary>
+			/// Gets a collection exposer for the <see cref="JobError.Message"/> property. Use it to select the field in a partial read, and <see cref="Message"/> to filter on it.
+			/// </summary>
+			public static readonly CollectionExposer<Job, string> MessageCollection = new CollectionExposer<Job, string>((obj) => obj.Errors.Where(x => x != null).Select(x => x.Message).Where(x => x != null), "Errors.MessageCollection");
 		}
 	}
 }

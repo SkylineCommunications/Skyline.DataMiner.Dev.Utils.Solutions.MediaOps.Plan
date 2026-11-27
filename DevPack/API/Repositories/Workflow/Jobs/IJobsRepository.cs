@@ -3,12 +3,24 @@
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.SDM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	/// <summary>
 	/// Defines methods for managing <see cref="Job"/> objects, including state transitions.
 	/// </summary>
-	public interface IJobsRepository : IRepository<Job>
+	/// <remarks>
+	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialQuery{T})"/>) support every
+	/// field of <see cref="JobExposers"/> and return the same values as a full read. Fields that hold a value per node,
+	/// error, orchestration setting or property setting (e.g. <see cref="JobExposers.Resources"/> or
+	/// <see cref="JobExposers.Errors.Code"/>) are read with
+	/// <see cref="PartialObject{T}.GetValues{TField}(Net.Messages.SLDataGateway.DynamicListExposer{T, TField})"/>. Values are looked up by
+	/// exposer instance, so read them with the exposers that were included in the query. The identifier is only returned
+	/// when <see cref="JobExposers.Id"/> is included.
+	/// Selecting orchestration or property settings fields reads the instances they are stored in once per batch of jobs.
+	/// <see cref="IPartialPageableRepository{T}.ReadPartialPaged(IPartialQuery{T})"/> returns the same objects in pages of 200.
+	/// </remarks>
+	public interface IJobsRepository : IRepository<Job>, IPartialPageableRepository<Job>
 	{
 		/// <summary>
 		/// Gets the identifiers for predefined job types.

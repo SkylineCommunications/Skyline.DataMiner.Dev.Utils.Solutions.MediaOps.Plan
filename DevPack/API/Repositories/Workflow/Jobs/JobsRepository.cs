@@ -4,7 +4,10 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Apps.ManagerStore.Select;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -14,10 +17,12 @@
 	internal class JobsRepository : Repository, IJobsRepository
 	{
 		private readonly JobFilterTranslator filterTranslator;
+		private readonly DomPartialReader<Job> partialReader;
 
 		public JobsRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
 			filterTranslator = new JobFilterTranslator(planApi);
+			partialReader = new DomPartialReader<Job>(planApi, () => planApi.DomHelpers.SlcWorkflowHelper.DomHelper, filterTranslator, JobPartialFieldMapper.Instance, nameof(JobsRepository));
 		}
 
 		public JobTypes JobTypes { get; } = new JobTypes();
@@ -850,6 +855,21 @@
 		public IEnumerable<Job> Read()
 		{
 			return Read(new TRUEFilterElement<Job>());
+		}
+
+		public IEnumerable<SDM.PartialObject<Job>> ReadPartial(SDM.IPartialQuery<Job> query)
+		{
+			return partialReader.ReadPartial(query);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialQuery<Job> query)
+		{
+			return partialReader.ReadPartialPaged(query, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialQuery<Job> query, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(query, pageSize);
 		}
 
 		public Job Read(Guid id)
