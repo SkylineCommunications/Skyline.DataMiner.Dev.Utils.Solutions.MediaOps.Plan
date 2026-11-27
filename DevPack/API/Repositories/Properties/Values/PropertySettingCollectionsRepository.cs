@@ -8,6 +8,7 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.SDM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	using SLDataGateway.API.Types.Querying;
@@ -18,6 +19,7 @@
 	internal class PropertySettingCollectionsRepository : Repository, IPropertySettingCollectionsRepository
 	{
 		private readonly PropertySettingCollectionFilterTranslator filterTranslator = new PropertySettingCollectionFilterTranslator();
+		private readonly DomPartialReader<PropertySettingCollection> partialReader;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="PropertySettingCollectionsRepository"/> class.
@@ -26,6 +28,7 @@
 		public PropertySettingCollectionsRepository(MediaOpsPlanApi planApi)
 			: base(planApi)
 		{
+			partialReader = new DomPartialReader<PropertySettingCollection>(planApi, () => planApi.DomHelpers.SlcPropertiesHelper.DomHelper, filterTranslator, PropertySettingCollectionPartialFieldMapper.Instance, nameof(PropertySettingCollectionsRepository));
 		}
 
 		/// <summary>
@@ -456,6 +459,24 @@
 		public IEnumerable<IPagedResult<PropertySettingCollection>> ReadPaged(int pageSize)
 		{
 			return ReadPaged(new TRUEFilterElement<PropertySettingCollection>(), pageSize);
+		}
+
+		/// <inheritdoc />
+		public IEnumerable<SDM.PartialObject<PropertySettingCollection>> ReadPartial(SDM.IPartialQuery<PropertySettingCollection> partialQuery)
+		{
+			return partialReader.ReadPartial(partialQuery);
+		}
+
+		/// <inheritdoc />
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<PropertySettingCollection>>> ReadPartialPaged(SDM.IPartialQuery<PropertySettingCollection> partialQuery)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		/// <inheritdoc />
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<PropertySettingCollection>>> ReadPartialPaged(SDM.IPartialQuery<PropertySettingCollection> partialQuery, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}
 
 		/// <summary>
