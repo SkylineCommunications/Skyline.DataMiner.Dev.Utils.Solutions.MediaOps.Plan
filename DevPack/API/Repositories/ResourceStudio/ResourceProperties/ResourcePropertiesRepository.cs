@@ -18,6 +18,7 @@
 	internal class ResourcePropertiesRepository : Repository, IResourcePropertiesRepository
 	{
 		private readonly ResourcePropertyFilterTranslator filterTranslator = new ResourcePropertyFilterTranslator();
+		private readonly Querying.DomPartialReader<ResourceProperty> partialReader;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ResourcePropertiesRepository"/> class.
@@ -26,6 +27,7 @@
 		public ResourcePropertiesRepository(MediaOpsPlanApi planApi)
 			: base(planApi)
 		{
+			partialReader = new Querying.DomPartialReader<ResourceProperty>(planApi, () => planApi.DomHelpers.SlcResourceStudioHelper.DomHelper, filterTranslator, ResourcePropertyPartialFieldMapper.Instance, nameof(ResourcePropertiesRepository));
 		}
 
 		/// <summary>
@@ -456,6 +458,21 @@
 		public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(int pageSize)
 		{
 			return ReadPaged(new TRUEFilterElement<ResourceProperty>(), pageSize);
+		}
+
+		public IEnumerable<PartialObject<ResourceProperty>> ReadPartial(IPartialQuery<ResourceProperty> query)
+		{
+			return partialReader.ReadPartial(query);
+		}
+
+		public IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialQuery<ResourceProperty> query)
+		{
+			return partialReader.ReadPartialPaged(query, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		public IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialQuery<ResourceProperty> query, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(query, pageSize);
 		}
 
 		/// <summary>
