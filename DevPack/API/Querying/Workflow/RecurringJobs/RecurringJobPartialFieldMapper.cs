@@ -33,30 +33,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private static readonly Dictionary<string, PartialField> Fields = new Dictionary<string, PartialField>
 		{
-			[RecurringJobExposers.Id.fieldName] = PartialField.Single(x => x.Id.Id),
+			[RecurringJobExposers.Id.fieldName] = PartialField.Scalar(x => x.RecurringJobId),
 			[RecurringJobExposers.Name.fieldName] = PartialField.ForString(JobInfo.JobName),
 			[RecurringJobExposers.Description.fieldName] = PartialField.ForString(JobInfo.JobDescription),
 			[RecurringJobExposers.Notes.fieldName] = PartialField.ForString(JobInfo.JobNotes),
 			[RecurringJobExposers.JobTypeCategoryId.fieldName] = PartialField.ForString(JobInfo.JobSource),
-			[RecurringJobExposers.Start.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.JobStart), JobInfo.JobStart),
+			[RecurringJobExposers.Start.fieldName] = PartialField.Single(x => ReadDate(x, JobInfo.JobStart) ?? default, JobInfo.JobStart),
 			[RecurringJobExposers.Duration.fieldName] = PartialField.Single(x => x.TryGetValue<TimeSpan>(RecurringInfo.Duration, out var value) ? value : TimeSpan.Zero, RecurringInfo.Duration),
 			[RecurringJobExposers.DesiredJobState.fieldName] = PartialField.Single(ReadDesiredJobState, RecurringInfo.DesiredJobStatus),
 
 			// RecurringJob doesn't parse these values from its DOM instance, so a full read always returns their defaults.
-			[RecurringJobExposers.Priority.fieldName] = PartialField.Single(_ => RecurringJobPriority.Normal),
-			[RecurringJobExposers.OrganizationId.fieldName] = PartialField.Single(_ => Guid.Empty),
-			[RecurringJobExposers.OwnerId.fieldName] = PartialField.Single(_ => Guid.Empty),
+			[RecurringJobExposers.Priority.fieldName] = PartialField.Scalar(_ => RecurringJobPriority.Normal),
+			[RecurringJobExposers.OrganizationId.fieldName] = PartialField.Scalar(_ => Guid.Empty),
+			[RecurringJobExposers.OwnerId.fieldName] = PartialField.Scalar(_ => Guid.Empty),
 
 			[RecurringJobExposers.Pattern.EndDate.fieldName] = PartialField.Single(ReadPatternEndDate, RecurringInfo.RecurringPattern),
 
-			[RecurringJobExposers.Resources.fieldName] = new PartialField(x => x.GetResourceIds().Cast<object>(), Nodes.NodeType, Nodes.NodeReferenceID)
-			{
-				CanCombineSections = x => x.CanCombineNodeReferences(),
-			},
-			[RecurringJobExposers.ResourcePools.fieldName] = new PartialField(x => x.GetResourcePoolIds().Cast<object>(), Nodes.NodeType, Nodes.NodeReferenceID, Nodes.NodeParentReferenceID)
-			{
-				CanCombineSections = x => x.CanCombineNodeParentReferences(),
-			},
+			[RecurringJobExposers.Resources.fieldName] = PartialField.Collection(x => x.GetResourceIds(), Nodes.NodeType, Nodes.NodeReferenceID)
+				.WithCanCombineSections(x => x.CanCombineNodeReferences()),
+			[RecurringJobExposers.ResourcePools.fieldName] = PartialField.Collection(x => x.GetResourcePoolIds(), Nodes.NodeType, Nodes.NodeReferenceID, Nodes.NodeParentReferenceID)
+				.WithCanCombineSections(x => x.CanCombineNodeParentReferences()),
 		};
 
 		/// <summary>
@@ -125,9 +121,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			LoadFullInstancesWhereNeeded(planApi, contexts, selected.Select(x => x.Field).ToList());
 
 			return contexts
-				.Select(context => new Skyline.DataMiner.SDM.PartialObject<RecurringJob>(
-					context.RecurringJobId,
-					selected.Select(x => new KeyValuePair<FieldExposer, IEnumerable<object>>(x.Exposer, x.Field.Read(context).ToList()))))
+				.Select(context =>
+				{
+					var builder = Skyline.DataMiner.SDM.PartialObject<RecurringJob>.CreateBuilder();
+					foreach (var (exposer, field) in selected)
+					{
+						field.Include(builder, exposer, context);
+					}
+
+					return builder.Build();
+				})
 				.ToList();
 		}
 
@@ -170,7 +173,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private static IEnumerable<(FieldExposer Exposer, PartialField Field)> GetFields(IEnumerable<FieldExposer> fields)
 		{
-			var seen = new HashSet<FieldExposer>(FieldExposerComparer.Instance);
+			// Partial objects look up values by exposer instance, so the instances themselves are de-duplicated.
+			var seen = new HashSet<FieldExposer>();
 
 			foreach (var exposer in fields)
 			{
@@ -179,7 +183,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				if (exposer.FilterType != typeof(RecurringJob) || !Fields.TryGetValue(exposer.fieldName, out var field))
+				if (exposer.FilterType != typeof(RecurringJob) || !Fields.TryGetValue(exposer.fieldName, out var field) || !field.ExposerType.IsInstanceOfType(exposer))
 				{
 					throw new NotSupportedException($"Field '{exposer.fieldName}' can't be read partially. Supported fields: {String.Join(", ", Fields.Keys)}.");
 				}
@@ -188,22 +192,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private static IEnumerable<object> ToValues(object value)
-		{
-			return value == null ? Enumerable.Empty<object>() : new[] { value };
-		}
-
 		private static DateTimeOffset? ReadDate(DomPartialObject partialObject, FieldDescriptorID descriptor)
 		{
 			return partialObject.TryGetValue<DateTime>(descriptor, out var value) ? (DateTimeOffset?)value : null;
 		}
 
-		private static object ReadString(DomPartialObject partialObject, FieldDescriptorID descriptor)
+		private static string ReadString(DomPartialObject partialObject, FieldDescriptorID descriptor)
 		{
 			return partialObject.TryGetValue<string>(descriptor, out var value) ? value : null;
 		}
 
-		private static object ReadDesiredJobState(DomPartialObject partialObject)
+		private static DesiredJobState ReadDesiredJobState(DomPartialObject partialObject)
 		{
 			var status = partialObject.TryGetValue<int>(RecurringInfo.DesiredJobStatus, out var value)
 				? (SlcWorkflowIds.Enums.Desiredjobstatus)value
@@ -212,9 +211,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return status.MapEnum<SlcWorkflowIds.Enums.Desiredjobstatus, DesiredJobState>();
 		}
 
-		private static object ReadPatternEndDate(DomPartialObject partialObject)
+		private static DateTimeOffset ReadPatternEndDate(DomPartialObject partialObject)
 		{
-			var patternJson = ReadString(partialObject, RecurringInfo.RecurringPattern) as string;
+			var patternJson = ReadString(partialObject, RecurringInfo.RecurringPattern);
 			var pattern = String.IsNullOrEmpty(patternJson) ? new RecurringPattern() : RecurringPattern.Deserialize(patternJson);
 
 			return pattern != null ? pattern.EndDate : default;
@@ -222,30 +221,63 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private sealed class PartialField
 		{
-			public PartialField(Func<RecurringJobPartialReadContext, IEnumerable<object>> read, params FieldDescriptorID[] descriptors)
+			private readonly Action<Skyline.DataMiner.SDM.PartialObject<RecurringJob>.Builder, FieldExposer, RecurringJobPartialReadContext> include;
+
+			private PartialField(Type exposerType, Action<Skyline.DataMiner.SDM.PartialObject<RecurringJob>.Builder, FieldExposer, RecurringJobPartialReadContext> include, FieldDescriptorID[] descriptors)
 			{
-				Read = read;
+				ExposerType = exposerType;
+				this.include = include;
 				Descriptors = descriptors;
 			}
 
-			public Func<RecurringJobPartialReadContext, IEnumerable<object>> Read { get; }
+			/// <summary>
+			/// Gets the type the selected exposer must have, so the value can be included with the exposer's field type.
+			/// </summary>
+			public Type ExposerType { get; }
 
 			public IReadOnlyCollection<FieldDescriptorID> Descriptors { get; }
 
 			/// <summary>
-			/// Gets or sets a check whether the values of the sections that occur multiple times can be combined per section.
+			/// Gets a check whether the values of the sections that occur multiple times can be combined per section.
 			/// When it fails for a recurring job, the field is read from the full recurring job DOM instance.
 			/// </summary>
-			public Func<RecurringJobPartialReadContext, bool> CanCombineSections { get; set; }
+			public Func<RecurringJobPartialReadContext, bool> CanCombineSections { get; private set; }
 
-			public static PartialField Single(Func<DomPartialObject, object> read, params FieldDescriptorID[] descriptors)
+			public static PartialField Scalar<TField>(Func<RecurringJobPartialReadContext, TField> read, params FieldDescriptorID[] descriptors)
 			{
-				return new PartialField(x => ToValues(read(x.PartialObject)), descriptors);
+				return new PartialField(
+					typeof(Exposer<RecurringJob, TField>),
+					(builder, exposer, context) => builder.Include((Exposer<RecurringJob, TField>)exposer, read(context)),
+					descriptors);
+			}
+
+			public static PartialField Single<TField>(Func<DomPartialObject, TField> read, params FieldDescriptorID[] descriptors)
+			{
+				return Scalar(x => read(x.PartialObject), descriptors);
 			}
 
 			public static PartialField ForString(FieldDescriptorID descriptor)
 			{
 				return Single(x => ReadString(x, descriptor), descriptor);
+			}
+
+			public static PartialField Collection<TField>(Func<RecurringJobPartialReadContext, IEnumerable<TField>> read, params FieldDescriptorID[] descriptors)
+			{
+				return new PartialField(
+					typeof(DynamicListExposer<RecurringJob, TField>),
+					(builder, exposer, context) => builder.Include((DynamicListExposer<RecurringJob, TField>)exposer, read(context).ToList()),
+					descriptors);
+			}
+
+			public PartialField WithCanCombineSections(Func<RecurringJobPartialReadContext, bool> canCombineSections)
+			{
+				CanCombineSections = canCombineSections;
+				return this;
+			}
+
+			public void Include(Skyline.DataMiner.SDM.PartialObject<RecurringJob>.Builder builder, FieldExposer exposer, RecurringJobPartialReadContext context)
+			{
+				include(builder, exposer, context);
 			}
 		}
 	}

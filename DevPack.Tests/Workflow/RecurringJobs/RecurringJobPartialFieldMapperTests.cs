@@ -45,6 +45,14 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 		}
 
 		[TestMethod]
+		public void CreateSelectedFields_WrongExposerType_ThrowsNotSupportedException()
+		{
+			var nameWithWrongType = new Exposer<RecurringJob, int>(x => x.Name.Length, RecurringJobExposers.Name.fieldName);
+
+			Assert.ThrowsException<NotSupportedException>(() => RecurringJobPartialFieldMapper.CreateSelectedFields(new[] { nameWithWrongType }));
+		}
+
+		[TestMethod]
 		public void CreateSelectedFields_NodeFields_SelectTheFieldsTheyAreCombinedFrom()
 		{
 			var selectedFields = RecurringJobPartialFieldMapper.CreateSelectedFields(new FieldExposer[] { RecurringJobExposers.Resources, RecurringJobExposers.ResourcePools });
@@ -87,7 +95,6 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 				RecurringJobExposers.Pattern.EndDate,
 			});
 
-			Assert.AreEqual(id, partialRecurringJob.Id);
 			Assert.AreEqual(id, partialRecurringJob.GetValue(RecurringJobExposers.Id));
 			Assert.AreEqual("Recurring job", partialRecurringJob.GetValue(RecurringJobExposers.Name));
 			Assert.AreEqual("Category", partialRecurringJob.GetValue(RecurringJobExposers.JobTypeCategoryId));

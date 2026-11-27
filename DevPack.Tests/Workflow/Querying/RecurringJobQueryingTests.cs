@@ -138,9 +138,9 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		{
 			foreach (var (expectedObjects, query) in RecurringJobQueryTestCases.Concat(RecurringJobLimitedQueryTestCases))
 			{
-				var partialRecurringJobs = TestContext.Api.RecurringJobs.ReadPartial(query.WithFields(RecurringJobExposers.Name)).ToList();
+				var partialRecurringJobs = TestContext.Api.RecurringJobs.ReadPartial(SelectIdAndName(query)).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialRecurringJobs.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialRecurringJobs.Select(x => x.GetValue(RecurringJobExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialRecurringJobs.Select(x => x.GetValue(RecurringJobExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -150,11 +150,11 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		{
 			foreach (var (expectedObjects, query) in RecurringJobQueryTestCases.Concat(RecurringJobLimitedQueryTestCases))
 			{
-				var pages = TestContext.Api.RecurringJobs.ReadPartialPaged(query.WithFields(RecurringJobExposers.Name)).ToList();
+				var pages = TestContext.Api.RecurringJobs.ReadPartialPaged(SelectIdAndName(query)).ToList();
 
 				Assert.AreEqual(1, pages.Count, $"Query: {query}");
 				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.GetValue(RecurringJobExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(RecurringJobExposers.Name)).ToList(), $"Query: {query}");
 			}
 		}
@@ -162,13 +162,11 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		[TestMethod]
 		public void ReadPartialPagedRecurringJobsWithQuery_CustomPageSize_SplitsRecurringJobsOverPages()
 		{
-			var repository = (RecurringJobsRepository)TestContext.Api.RecurringJobs;
-
 			foreach (var (expectedObjects, query) in RecurringJobQueryTestCases.Concat(RecurringJobLimitedQueryTestCases))
 			{
-				var pages = repository.ReadPartialPaged(query.WithFields(RecurringJobExposers.Name), 2).ToList();
+				var pages = TestContext.Api.RecurringJobs.ReadPartialPaged(SelectIdAndName(query), 2).ToList();
 
-				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.GetValue(RecurringJobExposers.Id)).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
 				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
 				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
@@ -180,15 +178,20 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		[TestMethod]
 		public void ReadPartialPagedRecurringJobsWithFilter_ReturnsAllRecurringJobs()
 		{
-			var pages = TestContext.Api.RecurringJobs.ReadPartialPaged(RecurringJobFilter.WithFields(RecurringJobExposers.Name, RecurringJobExposers.Resources)).ToList();
+			var partialQuery = new PartialQuery<RecurringJob>(RecurringJobFilter.ToQuery())
+				.Include(RecurringJobExposers.Id)
+				.Include(RecurringJobExposers.Name)
+				.Include(RecurringJobExposers.Resources);
+
+			var pages = TestContext.Api.RecurringJobs.ReadPartialPaged(partialQuery).ToList();
 			var recurringJobsById = TestContext.Api.RecurringJobs.Read(RecurringJobFilter).ToDictionary(x => x.Id);
 
 			Assert.AreEqual(1, pages.Count);
-			CollectionAssert.AreEquivalent(recurringJobsById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+			CollectionAssert.AreEquivalent(recurringJobsById.Keys.ToList(), pages[0].Select(x => x.GetValue(RecurringJobExposers.Id)).ToList());
 
 			foreach (var partialRecurringJob in pages[0])
 			{
-				var recurringJob = recurringJobsById[partialRecurringJob.Id];
+				var recurringJob = recurringJobsById[partialRecurringJob.GetValue(RecurringJobExposers.Id)];
 				Assert.AreEqual(recurringJob.Name, partialRecurringJob.GetValue(RecurringJobExposers.Name));
 				CollectionAssert.AreEqual(recurringJob.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId).ToList(), partialRecurringJob.GetValues(RecurringJobExposers.Resources).ToList(), recurringJob.Name);
 			}
@@ -197,23 +200,23 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		[TestMethod]
 		public void ReadPartialRecurringJobsWithFilter_ReturnsSameValuesAsFullRead()
 		{
-			var partialFilter = RecurringJobFilter.WithFields(
-				RecurringJobExposers.Id,
-				RecurringJobExposers.Name,
-				RecurringJobExposers.Description,
-				RecurringJobExposers.Notes,
-				RecurringJobExposers.Priority,
-				RecurringJobExposers.Start,
-				RecurringJobExposers.Duration,
-				RecurringJobExposers.DesiredJobState,
-				RecurringJobExposers.OrganizationId,
-				RecurringJobExposers.OwnerId,
-				RecurringJobExposers.JobTypeCategoryId,
-				RecurringJobExposers.Resources,
-				RecurringJobExposers.ResourcePools,
-				RecurringJobExposers.Pattern.EndDate);
+			var partialQuery = new PartialQuery<RecurringJob>(RecurringJobFilter.ToQuery())
+				.Include(RecurringJobExposers.Id)
+				.Include(RecurringJobExposers.Name)
+				.Include(RecurringJobExposers.Description)
+				.Include(RecurringJobExposers.Notes)
+				.Include(RecurringJobExposers.Priority)
+				.Include(RecurringJobExposers.Start)
+				.Include(RecurringJobExposers.Duration)
+				.Include(RecurringJobExposers.DesiredJobState)
+				.Include(RecurringJobExposers.OrganizationId)
+				.Include(RecurringJobExposers.OwnerId)
+				.Include(RecurringJobExposers.JobTypeCategoryId)
+				.Include(RecurringJobExposers.Resources)
+				.Include(RecurringJobExposers.ResourcePools)
+				.Include(RecurringJobExposers.Pattern.EndDate);
 
-			var partialRecurringJobsById = TestContext.Api.RecurringJobs.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var partialRecurringJobsById = TestContext.Api.RecurringJobs.ReadPartial(partialQuery).ToDictionary(x => x.GetValue(RecurringJobExposers.Id));
 			var recurringJobs = TestContext.Api.RecurringJobs.Read(RecurringJobFilter).ToList();
 
 			Assert.AreEqual(recurringJobs.Count, partialRecurringJobsById.Count);
@@ -250,7 +253,12 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		{
 			var unknownField = new Exposer<RecurringJob, string>(x => x.Name, "Unknown");
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.RecurringJobs.ReadPartial(RecurringJobFilter.WithFields(unknownField)));
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.RecurringJobs.ReadPartial(new PartialQuery<RecurringJob>(RecurringJobFilter.ToQuery()).Include(unknownField)));
+		}
+
+		private static IPartialQuery<RecurringJob> SelectIdAndName(IQuery<RecurringJob> query)
+		{
+			return new PartialQuery<RecurringJob>(query).Include(RecurringJobExposers.Id).Include(RecurringJobExposers.Name);
 		}
 
 		[TestMethod]
