@@ -3,10 +3,21 @@
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.SDM;
+
 	/// <summary>
 	/// Defines methods for managing <see cref="RecurringJob"/> objects.
 	/// </summary>
-	public interface IRecurringJobsRepository : IRepository<RecurringJob>
+	/// <remarks>
+	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialQuery{T})"/>) support every
+	/// field of <see cref="RecurringJobExposers"/> and return the same values as a full read. Fields that hold a value per
+	/// node (<see cref="RecurringJobExposers.Resources"/> and <see cref="RecurringJobExposers.ResourcePools"/>) are read with
+	/// <see cref="PartialObject{T}.GetValues{TField}(Net.Messages.SLDataGateway.DynamicListExposer{T, TField})"/>.
+	/// Values are looked up by exposer instance, so read them with the exposers that were included in the query.
+	/// The identifier is only returned when <see cref="RecurringJobExposers.Id"/> is included.
+	/// <see cref="IPartialPageableRepository{T}.ReadPartialPaged(IPartialQuery{T})"/> returns the same objects in pages of 200.
+	/// </remarks>
+	public interface IRecurringJobsRepository : IRepository<RecurringJob>, IPartialPageableRepository<RecurringJob>
 	{
 		/// <summary>
 		/// Moves the specified <see cref="RecurringJob"/> from <see cref="RecurringJobState.Active"/> to <see cref="RecurringJobState.Completed"/> state.
